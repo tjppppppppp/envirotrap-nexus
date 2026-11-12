@@ -1,0 +1,4385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>EnviroTrap Nexus — UIUC Waste Intelligence Platform</title>
+<script src="lib/react.js"></script>
+<script src="lib/react-dom.js"></script>
+
+<script src="lib/prop-types.js"></script>
+<script src="lib/recharts.js"></script>
+<script src="lib/tailwind.js"></script>
+<style>
+*{box-sizing:border-box}
+body{font-family:Inter,system-ui,sans-serif;background:#f8f5ee;color:#1e3a5f;margin:0}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#f0e8d5}
+::-webkit-scrollbar-thumb{background:#80a2ce;border-radius:3px}
+.demo-banner{background:repeating-linear-gradient(45deg,#e9a825,#e9a825 10px,#f5b820 10px,#f5b820 20px)}
+.nav-item{transition:all .15s;width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;text-align:left;background:none;border:none;cursor:pointer}
+.nav-item:hover{background:rgba(255,255,255,.12)}
+.nav-item.active{background:rgba(255,255,255,.18);border-left:3px solid #f5b820}
+.card{background:white;border-radius:8px;border:1px solid #e4d5b5}
+.stat-card{background:white;border-radius:8px;border:1px solid #e4d5b5;padding:1.25rem}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:.03em}
+.badge-navy{background:#d5e0ef;color:#1e3a5f}
+.badge-green{background:#cce5d8;color:#1a3d30}
+.badge-amber{background:#fdf0c4;color:#a87214}
+.badge-red{background:#fee2e2;color:#991b1b}
+.badge-gray{background:#f3f4f6;color:#6b7280}
+.badge-purple{background:#ede9fe;color:#5b21b6}
+input,select,textarea{border:1px solid #e4d5b5;border-radius:6px;padding:8px 12px;font-size:14px;font-family:inherit;outline:none;width:100%;background:white}
+input:focus,select:focus,textarea:focus{border-color:#3b6fae;box-shadow:0 0 0 3px rgba(59,111,174,.1)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s}
+.btn-primary{background:#1e3a5f;color:white}.btn-primary:hover{background:#2d5a8e}
+.btn-secondary{background:white;color:#1e3a5f;border:1px solid #abc1df}.btn-secondary:hover{background:#eef2f8}
+.btn-green{background:#2d6a4f;color:white}.btn-green:hover{background:#235441}
+.btn-amber{background:#e9a825;color:white}.btn-amber:hover{background:#c98f1a}
+.btn-danger{background:#dc2626;color:white}.btn-danger:hover{background:#b91c1c}
+.btn-sm{padding:5px 10px;font-size:12px}
+table{width:100%;border-collapse:collapse}
+th{background:#f8f5ee;color:#1e3a5f;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:10px 14px;text-align:left;border-bottom:1px solid #e4d5b5}
+td{padding:10px 14px;font-size:13px;border-bottom:1px solid #f0e8d5;color:#374151}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fdfcf8}
+.progress-bar{background:#e4d5b5;border-radius:9999px;overflow:hidden}
+.progress-fill{height:100%;border-radius:9999px;transition:width .5s}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem}
+.modal-box{background:white;border-radius:10px;padding:1.5rem;max-width:620px;width:100%;max-height:90vh;overflow-y:auto}
+.section-header{font-size:1.25rem;font-weight:700;color:#1e3a5f;border-bottom:2px solid #e4d5b5;padding-bottom:10px;margin-bottom:1.25rem}
+.insight-card{border-left:4px solid #3b6fae}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const {
+  useState,
+  useMemo
+} = React;
+const {
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
+} = Recharts;
+const BUILDINGS = [{
+  id: 'B001',
+  name: 'Illini Union',
+  abbr: 'IU',
+  type: 'Student Services',
+  sqft: 270000,
+  floors: 4
+}, {
+  id: 'B002',
+  name: 'Siebel Center for Computer Science',
+  abbr: 'SC',
+  type: 'Academic',
+  sqft: 210000,
+  floors: 4
+}, {
+  id: 'B003',
+  name: 'Campus Recreation Center East',
+  abbr: 'CRCE',
+  type: 'Recreation',
+  sqft: 158000,
+  floors: 3
+}, {
+  id: 'B004',
+  name: 'Grainger Engineering Library',
+  abbr: 'GEL',
+  type: 'Academic',
+  sqft: 89000,
+  floors: 5
+}, {
+  id: 'B005',
+  name: 'Foellinger Auditorium',
+  abbr: 'FA',
+  type: 'Academic',
+  sqft: 45000,
+  floors: 2
+}, {
+  id: 'B006',
+  name: 'Ikenberry Dining Center',
+  abbr: 'IDC',
+  type: 'Dining',
+  sqft: 62000,
+  floors: 2
+}, {
+  id: 'B007',
+  name: 'Lincoln Hall',
+  abbr: 'LH',
+  type: 'Academic',
+  sqft: 78000,
+  floors: 4
+}, {
+  id: 'B008',
+  name: 'Natural History Building',
+  abbr: 'NHB',
+  type: 'Academic',
+  sqft: 110000,
+  floors: 4
+}, {
+  id: 'B009',
+  name: 'Beckman Institute',
+  abbr: 'BI',
+  type: 'Research',
+  sqft: 205000,
+  floors: 5
+}, {
+  id: 'B010',
+  name: 'Memorial Stadium',
+  abbr: 'MS',
+  type: 'Athletics',
+  sqft: 350000,
+  floors: 5
+}, {
+  id: 'B011',
+  name: 'Chemistry Annex',
+  abbr: 'CA',
+  type: 'Academic',
+  sqft: 55000,
+  floors: 3
+}, {
+  id: 'B012',
+  name: 'Pennsylvania Avenue Residence Hall',
+  abbr: 'PAR',
+  type: 'Residential',
+  sqft: 185000,
+  floors: 10
+}, {
+  id: 'B013',
+  name: 'Loomis Laboratory of Physics',
+  abbr: 'LL',
+  type: 'Academic',
+  sqft: 95000,
+  floors: 4
+}, {
+  id: 'B014',
+  name: 'Transportation Building',
+  abbr: 'TB',
+  type: 'Academic',
+  sqft: 48000,
+  floors: 3
+}, {
+  id: 'B015',
+  name: 'Waste Transfer Station',
+  abbr: 'WTS',
+  type: 'Operations',
+  sqft: 18000,
+  floors: 1
+}];
+const ROUTES = ['Route A — North Campus', 'Route B — Engineering Quad', 'Route C — South Campus', 'Route D — Residential East', 'Route E — Athletics'];
+const STREAMS = ['General Waste', 'Recycling', 'Compost', 'Landfill', 'Confidential Paper'];
+const CONTAINERS = ['Dumpster 2yd', 'Dumpster 4yd', 'Dumpster 8yd', 'Cart 96gal', 'Cart 64gal', 'Compactor', 'Toter'];
+const MC = ['#1e3a5f', '#2d6a4f', '#3b6fae', '#e9a825', '#66b089', '#c4a360', '#80a2ce', '#a87214'];
+const SC = ['#1e3a5f', '#2d6a4f', '#e9a825', '#c98f1a', '#3b6fae'];
+function rnd(a, b) {
+  return Math.floor(Math.random() * (b - a + 1)) + a;
+}
+function pick(a) {
+  return a[Math.floor(Math.random() * a.length)];
+}
+const DEMO_RECORDS = (() => {
+  const r = [];
+  const s = new Date('2023-01-01').getTime(),
+    e = new Date('2024-06-30').getTime();
+  for (let i = 0; i < 220; i++) {
+    const d = new Date(s + Math.random() * (e - s));
+    const hb = Math.random() < 0.126;
+    const g = rnd(200, 4800),
+      t = rnd(80, 400);
+    const b = hb ? pick(BUILDINGS.slice(0, 14)) : null;
+    r.push({
+      id: `LM${String(i + 1).padStart(5, '0')}`,
+      date: d.toISOString().split('T')[0],
+      time: `${String(rnd(6, 17)).padStart(2, '0')}:${String(rnd(0, 59)).padStart(2, '0')}`,
+      route: pick(ROUTES),
+      building_id: b?.id || null,
+      building_name: b?.name || null,
+      container: pick(CONTAINERS),
+      stream: pick(STREAMS),
+      gross_lbs: g,
+      tare_lbs: t,
+      net_lbs: g - t,
+      has_rfid: Math.random() < 0.08,
+      notes: Math.random() < 0.15 ? pick(['Container overfull', 'Access blocked', 'Rain delay', 'Contamination observed']) : ''
+    });
+  }
+  return r.sort((a, b) => a.date.localeCompare(b.date));
+})();
+const DEMO_AUDITS = [{
+  id: 'AUD001',
+  title: 'Illini Union Pre-Event Audit',
+  building_id: 'B001',
+  building_name: 'Illini Union',
+  date: '2024-03-15',
+  auditors: ['Tajuan Williams', 'Sarah Chen'],
+  status: 'Completed',
+  sample_weight_lbs: 87.3,
+  stream: 'General Waste',
+  location: 'Main loading dock',
+  notes: 'Conducted during high-traffic week. Strong paper towel component.',
+  materials: [{
+    name: 'Paper',
+    weight: 8.2
+  }, {
+    name: 'Cardboard',
+    weight: 5.1
+  }, {
+    name: 'Plastics',
+    weight: 12.4
+  }, {
+    name: 'Metals',
+    weight: 1.8
+  }, {
+    name: 'Glass',
+    weight: 2.3
+  }, {
+    name: 'Food Waste',
+    weight: 31.5
+  }, {
+    name: 'Paper Towels',
+    weight: 19.2
+  }, {
+    name: 'Other',
+    weight: 6.8
+  }]
+}, {
+  id: 'AUD002',
+  title: 'CRCE Recycling Contamination Audit',
+  building_id: 'B003',
+  building_name: 'Campus Recreation Center East',
+  date: '2024-02-08',
+  auditors: ['Tajuan Williams'],
+  status: 'Completed',
+  sample_weight_lbs: 42.1,
+  stream: 'Recycling',
+  location: 'Side collection area',
+  notes: 'High contamination rate. Food waste found in recycling bins.',
+  materials: [{
+    name: 'Paper',
+    weight: 9.8
+  }, {
+    name: 'Cardboard',
+    weight: 7.3
+  }, {
+    name: 'Plastics',
+    weight: 14.2
+  }, {
+    name: 'Metals',
+    weight: 3.1
+  }, {
+    name: 'Glass',
+    weight: 2.0
+  }, {
+    name: 'Food Waste',
+    weight: 4.1
+  }, {
+    name: 'Paper Towels',
+    weight: 0.8
+  }, {
+    name: 'Other',
+    weight: 0.8
+  }]
+}, {
+  id: 'AUD003',
+  title: 'Ikenberry Dining Post-Meal Audit',
+  building_id: 'B006',
+  building_name: 'Ikenberry Dining Center',
+  date: '2024-04-02',
+  auditors: ['Sarah Chen', 'Marcus Thompson'],
+  status: 'Under Review',
+  sample_weight_lbs: 134.6,
+  stream: 'Compost',
+  location: 'Kitchen rear exit',
+  notes: 'Post-lunch collection. Unusually high food waste volume.',
+  materials: [{
+    name: 'Paper',
+    weight: 3.2
+  }, {
+    name: 'Cardboard',
+    weight: 1.1
+  }, {
+    name: 'Plastics',
+    weight: 4.8
+  }, {
+    name: 'Metals',
+    weight: 0.5
+  }, {
+    name: 'Glass',
+    weight: 0.2
+  }, {
+    name: 'Food Waste',
+    weight: 112.4
+  }, {
+    name: 'Paper Towels',
+    weight: 9.3
+  }, {
+    name: 'Other',
+    weight: 3.1
+  }]
+}, {
+  id: 'AUD004',
+  title: 'Beckman Institute Lab Waste',
+  building_id: 'B009',
+  building_name: 'Beckman Institute',
+  date: '2024-05-10',
+  auditors: ['Tajuan Williams', 'Dr. Anna Flores'],
+  status: 'In Progress',
+  sample_weight_lbs: 28.9,
+  stream: 'General Waste',
+  location: '3rd floor utility corridor',
+  notes: 'Research lab waste; potential hazmat documented separately.',
+  materials: [{
+    name: 'Paper',
+    weight: 11.2
+  }, {
+    name: 'Cardboard',
+    weight: 2.3
+  }, {
+    name: 'Plastics',
+    weight: 8.7
+  }, {
+    name: 'Metals',
+    weight: 1.4
+  }, {
+    name: 'Glass',
+    weight: 1.8
+  }, {
+    name: 'Food Waste',
+    weight: 1.1
+  }, {
+    name: 'Paper Towels',
+    weight: 1.9
+  }, {
+    name: 'Other',
+    weight: 0.5
+  }]
+}, {
+  id: 'AUD005',
+  title: 'PAR Residential Waste Baseline',
+  building_id: 'B012',
+  building_name: 'Pennsylvania Avenue Residence Hall',
+  date: '2024-06-01',
+  auditors: ['Marcus Thompson'],
+  status: 'Planned',
+  sample_weight_lbs: null,
+  stream: 'General Waste',
+  location: 'Building loading dock',
+  notes: 'Baseline audit before fall semester signage intervention.',
+  materials: []
+}];
+const DEMO_INSIGHTS = [{
+  id: 'INS001',
+  title: 'High Paper Towel Contamination in Recycling Streams',
+  status: 'Validated',
+  confidence: 'High',
+  category: 'Contamination',
+  building_ids: ['B001', 'B003', 'B007'],
+  summary: 'Across 3 completed audits, paper towels represent 18–22% of total recycling bin contents by weight.',
+  evidence: 'AUD001 (22.0%), AUD002 (1.9%)',
+  recommendation: 'Evaluate signage placement near paper towel dispensers adjacent to recycling collection points.'
+}, {
+  id: 'INS002',
+  title: '87.4% of LoadMan Records Lack Building Attribution',
+  status: 'Under Investigation',
+  confidence: 'High',
+  category: 'Data Quality',
+  building_ids: [],
+  summary: 'Only 12.6% of 220 demo pickup records can be attributed to a specific building — mirrors the historical 79,533-record finding.',
+  evidence: 'LoadMan records analysis',
+  recommendation: 'Investigate whether route logs, container IDs, or driver documentation could improve retrospective attribution.'
+}, {
+  id: 'INS003',
+  title: 'Ikenberry Post-Meal Food Waste Volume Spike',
+  status: 'Under Investigation',
+  confidence: 'Medium',
+  category: 'Composition',
+  building_ids: ['B006'],
+  summary: 'AUD003 found an unusually high post-lunch food waste volume of 112.4 lbs. Context requires additional audits.',
+  evidence: 'AUD003 (single data point)',
+  recommendation: 'Conduct 3 additional audits at Ikenberry at different meal times before drawing conclusions.'
+}, {
+  id: 'INS004',
+  title: 'RFID Tag Operational Rate Extremely Low',
+  status: 'Validated',
+  confidence: 'High',
+  category: 'Data Quality',
+  building_ids: [],
+  summary: 'Only 8% of simulated pickup records contain any RFID identifier field. Operational status must be confirmed with F&S.',
+  evidence: 'LoadMan records (17/220 have RFID populated)',
+  recommendation: 'Confirm with F&S whether RFID systems are deployed and operational on collection routes.'
+}, {
+  id: 'INS005',
+  title: 'Recycling Contamination at CRCE Warrants Follow-up',
+  status: 'Recommended for Action',
+  confidence: 'Medium',
+  category: 'Contamination',
+  building_ids: ['B003'],
+  summary: 'AUD002 documented food waste contamination in CRCE recycling bins at approximately 9.7% of sample weight.',
+  evidence: 'AUD002 contamination finding',
+  recommendation: 'Propose targeted bin labeling intervention at CRCE. Baseline: AUD002.'
+}, {
+  id: 'INS006',
+  title: 'Route B Engineering Quad Has No Attributed Records',
+  status: 'Under Investigation',
+  confidence: 'Medium',
+  category: 'Data Quality',
+  building_ids: ['B002', 'B004', 'B013'],
+  summary: 'Route B covers the engineering quad but no pickup records carry building-level attribution.',
+  evidence: 'LoadMan route analysis',
+  recommendation: 'Request route manifests from F&S to determine whether building-level collection occurs on this route.'
+}, {
+  id: 'INS007',
+  title: 'Compost Stream May Be Underrepresented',
+  status: 'Under Investigation',
+  confidence: 'Low',
+  category: 'Composition',
+  building_ids: [],
+  summary: 'Compost = 11% of LoadMan entries but dining facilities produce high organic waste. Attribution gaps may explain the discrepancy.',
+  evidence: 'LoadMan stream distribution',
+  recommendation: 'Cannot confirm without resolving attribution gap. Flag for F&S discussion.'
+}, {
+  id: 'INS008',
+  title: 'Beckman Lab Plastics Exceed Expected Ratio',
+  status: 'Under Investigation',
+  confidence: 'Low',
+  category: 'Composition',
+  building_ids: ['B009'],
+  summary: 'AUD004 preliminary data shows plastics at 30.1% — higher than typical. Lab consumables likely driver.',
+  evidence: 'AUD004 preliminary (in progress)',
+  recommendation: 'Complete AUD004 before drawing conclusions.'
+}];
+const DEMO_INTERVENTIONS = [{
+  id: 'INT001',
+  title: 'CRCE Recycling Bin Re-labeling',
+  linked_insight: 'INS005',
+  building_id: 'B003',
+  building_name: 'Campus Recreation Center East',
+  observation: 'Food waste contamination in recycling bins observed in AUD002 (9.7% by weight).',
+  proposed_action: 'Replace recycling bin lids and signage with clearer "No Food Waste" messaging; add paper towel receptacles adjacent to recycling stations.',
+  responsible_party: 'F&S Waste Management + CRCE Facilities',
+  status: 'Proposed',
+  proposed_date: '2024-07-01',
+  baseline: 'AUD002 (Feb 2024) — 9.7% food waste in recycling',
+  followup: 'Schedule AUD006 at CRCE 60 days after signage installation.',
+  outcome: ''
+}, {
+  id: 'INT002',
+  title: 'Illini Union Paper Towel Diversion Study',
+  linked_insight: 'INS001',
+  building_id: 'B001',
+  building_name: 'Illini Union',
+  observation: '22% paper towel content in IU general waste (AUD001).',
+  proposed_action: 'Pilot dedicated paper towel compost collection in high-traffic restrooms.',
+  responsible_party: 'Illini Union Facilities + EnviroTrap Research',
+  status: 'Approved',
+  proposed_date: '2024-08-15',
+  baseline: 'AUD001 (Mar 2024) — 22.0% paper towels by weight',
+  followup: 'Conduct post-intervention audit after one full semester.',
+  outcome: ''
+}, {
+  id: 'INT003',
+  title: 'LoadMan Attribution Improvement Investigation',
+  linked_insight: 'INS002',
+  building_id: null,
+  building_name: null,
+  observation: 'Only 12.6% of pickup records carry building-level attribution.',
+  proposed_action: 'Meet with F&S data team to understand LoadMan data entry workflows and identify whether building IDs exist in unexported fields.',
+  responsible_party: 'EnviroTrap Research + F&S IT',
+  status: 'In Progress',
+  proposed_date: '2024-06-15',
+  baseline: '12.6% attribution in analyzed dataset',
+  followup: 'Follow-up meeting scheduled July 2024.',
+  outcome: 'F&S confirmed LoadMan data collection varies by route. Some routes do not collect container-level data.'
+}, {
+  id: 'INT004',
+  title: 'PAR Residential Hall Waste Signage Study',
+  linked_insight: 'INS001',
+  building_id: 'B012',
+  building_name: 'Pennsylvania Avenue Residence Hall',
+  observation: 'No current waste composition data for residential halls.',
+  proposed_action: 'Conduct baseline waste audit at PAR before fall 2024 move-in.',
+  responsible_party: 'EnviroTrap Research + Housing Facilities',
+  status: 'Proposed',
+  proposed_date: '2024-07-20',
+  baseline: 'AUD005 (planned)',
+  followup: 'Fall 2024 follow-up audit after orientation week.',
+  outcome: ''
+}];
+const DEMO_TREND = (() => {
+  const months = ['Jan 23', 'Feb 23', 'Mar 23', 'Apr 23', 'May 23', 'Jun 23', 'Jul 23', 'Aug 23', 'Sep 23', 'Oct 23', 'Nov 23', 'Dec 23', 'Jan 24', 'Feb 24', 'Mar 24', 'Apr 24', 'May 24', 'Jun 24'];
+  return months.map(m => ({
+    month: m,
+    generalWaste: rnd(18000, 45000),
+    recycling: rnd(8000, 20000),
+    compost: rnd(3000, 12000),
+    landfill: rnd(5000, 15000)
+  }));
+})();
+const REGO_DATA = [{
+  id: 'R001',
+  building: 'Illini Union',
+  bin: 'IU-B12',
+  date: '2024-03-20',
+  stream: 'General Waste',
+  fill_pct: 78,
+  est_weight_lbs: 142,
+  materials: {
+    paper: 18,
+    plastics: 32,
+    food_waste: 45,
+    paper_towels: 27,
+    other: 20
+  },
+  contamination: 'Moderate food in recycling adjacent',
+  confidence: 'Medium'
+}, {
+  id: 'R002',
+  building: 'CRCE',
+  bin: 'CRCE-R04',
+  date: '2024-03-22',
+  stream: 'Recycling',
+  fill_pct: 65,
+  est_weight_lbs: 38,
+  materials: {
+    paper: 14,
+    plastics: 12,
+    food_waste: 4,
+    paper_towels: 2,
+    other: 6
+  },
+  contamination: 'Low — minimal food debris',
+  confidence: 'High'
+}, {
+  id: 'R003',
+  building: 'Ikenberry Dining',
+  bin: 'IDC-C01',
+  date: '2024-04-05',
+  stream: 'Compost',
+  fill_pct: 92,
+  est_weight_lbs: 198,
+  materials: {
+    paper: 5,
+    plastics: 8,
+    food_waste: 175,
+    paper_towels: 6,
+    other: 4
+  },
+  contamination: 'Low — expected compost content',
+  confidence: 'High'
+}, {
+  id: 'R004',
+  building: 'Siebel Center',
+  bin: 'SC-G08',
+  date: '2024-04-12',
+  stream: 'General Waste',
+  fill_pct: 45,
+  est_weight_lbs: 34,
+  materials: {
+    paper: 12,
+    plastics: 9,
+    food_waste: 5,
+    paper_towels: 4,
+    other: 4
+  },
+  contamination: 'None observed',
+  confidence: 'High'
+}, {
+  id: 'R005',
+  building: 'Beckman Institute',
+  bin: 'BI-G11',
+  date: '2024-04-18',
+  stream: 'General Waste',
+  fill_pct: 55,
+  est_weight_lbs: 41,
+  materials: {
+    paper: 15,
+    plastics: 14,
+    food_waste: 3,
+    paper_towels: 5,
+    other: 4
+  },
+  contamination: 'None observed',
+  confidence: 'Medium'
+}];
+function DemoBanner() {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "demo-banner text-center py-1.5 text-xs font-bold text-amber-900 tracking-widest uppercase"
+  }, "⚠ DEMO DATA — NOT ACTUAL UIUC OPERATIONAL RECORDS ⚠");
+}
+function StatCard({
+  label,
+  value,
+  sub,
+  color = 'navy'
+}) {
+  const bdr = {
+    navy: '#80a2ce',
+    green: '#66b089',
+    amber: '#f5b820',
+    red: '#f87171'
+  };
+  const tc = {
+    navy: '#1e3a5f',
+    green: '#1a3d30',
+    amber: '#a87214',
+    red: '#991b1b'
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    className: "stat-card",
+    style: {
+      borderLeft: `4px solid ${bdr[color]}`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      textTransform: 'uppercase',
+      letterSpacing: '.05em',
+      fontWeight: 600,
+      color: '#9ca3af',
+      marginBottom: 4
+    }
+  }, label), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 22,
+      fontWeight: 700,
+      color: tc[color]
+    }
+  }, value), sub && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: '#9ca3af',
+      marginTop: 2
+    }
+  }, sub));
+}
+function Badge({
+  status
+}) {
+  const m = {
+    'Planned': 'badge-gray',
+    'In Progress': 'badge-navy',
+    'Under Review': 'badge-amber',
+    'Completed': 'badge-green',
+    'Under Investigation': 'badge-navy',
+    'Validated': 'badge-green',
+    'Rejected': 'badge-red',
+    'Recommended for Action': 'badge-amber',
+    'Proposed': 'badge-gray',
+    'Approved': 'badge-navy',
+    'Evaluated': 'badge-purple',
+    'High': 'badge-green',
+    'Medium': 'badge-amber',
+    'Low': 'badge-red',
+    'Verified': 'badge-green',
+    'Inferred': 'badge-amber',
+    'Unknown': 'badge-gray'
+  };
+  return /*#__PURE__*/React.createElement("span", {
+    className: `badge ${m[status] || 'badge-gray'}`
+  }, status);
+}
+function SH({
+  title,
+  sub,
+  action
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      marginBottom: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h2", {
+    className: "section-header",
+    style: {
+      margin: 0
+    }
+  }, title), sub && /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: '#9ca3af',
+      marginTop: 4,
+      marginBottom: 0
+    }
+  }, sub)), action);
+}
+function QBar({
+  pct,
+  label
+}) {
+  const c = pct >= 80 ? '#2d6a4f' : pct >= 50 ? '#e9a825' : '#dc2626';
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      fontSize: 12,
+      marginBottom: 3
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: '#6b7280'
+    }
+  }, label), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 600
+    }
+  }, pct.toFixed(1), "%")), /*#__PURE__*/React.createElement("div", {
+    className: "progress-bar",
+    style: {
+      height: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "progress-fill",
+    style: {
+      width: `${pct}%`,
+      background: c
+    }
+  })));
+}
+function Modal({
+  title,
+  onClose,
+  children
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "modal-overlay",
+    onClick: e => e.target === e.currentTarget && onClose()
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "modal-box"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      fontSize: 16,
+      fontWeight: 700,
+      color: '#1e3a5f',
+      margin: 0
+    }
+  }, title), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: {
+      background: 'none',
+      border: 'none',
+      fontSize: 20,
+      cursor: 'pointer',
+      color: '#9ca3af'
+    }
+  }, "x")), children));
+}
+const NAV = [{
+  id: 'overview',
+  label: 'Overview',
+  icon: '📊'
+}, {
+  id: 'explorer',
+  label: 'Waste Explorer',
+  icon: '📂'
+}, {
+  id: 'mapper',
+  label: 'Source Mapper',
+  icon: '🗺'
+}, {
+  id: 'collection',
+  label: 'Collection Log',
+  icon: '🚛'
+}, {
+  id: 'audits',
+  label: 'Waste Audits',
+  icon: '🔬'
+}, {
+  id: 'rego',
+  label: 'Rego Research',
+  icon: '📡'
+}, {
+  id: 'insights',
+  label: 'Insights',
+  icon: '💡'
+}, {
+  id: 'interventions',
+  label: 'Interventions',
+  icon: '🎯'
+}, {
+  id: 'reports',
+  label: 'Reports',
+  icon: '📄'
+}, {
+  id: 'settings',
+  label: 'Settings',
+  icon: '⚙️'
+}];
+function Sidebar({
+  active,
+  setActive,
+  collapsed,
+  setCollapsed
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: '#1e3a5f',
+      minHeight: '100vh',
+      width: collapsed ? 56 : 220,
+      flexShrink: 0,
+      display: 'flex',
+      flexDirection: 'column',
+      transition: 'width .2s',
+      overflowX: 'hidden'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      padding: '14px 12px',
+      borderBottom: '1px solid rgba(255,255,255,.1)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: 8,
+      background: '#e9a825',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontWeight: 700,
+      fontSize: 13,
+      color: '#1e3a5f',
+      flexShrink: 0
+    }
+  }, "ET"), !collapsed && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 13,
+      color: 'white',
+      lineHeight: 1.2
+    }
+  }, "EnviroTrap"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: '#80a2ce'
+    }
+  }, "Nexus — UIUC")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setCollapsed(!collapsed),
+    style: {
+      marginLeft: 'auto',
+      background: 'none',
+      border: 'none',
+      color: '#80a2ce',
+      cursor: 'pointer',
+      fontSize: 18,
+      padding: 0,
+      lineHeight: 1
+    }
+  }, collapsed ? '>' : '<')), /*#__PURE__*/React.createElement("nav", {
+    style: {
+      flex: 1,
+      paddingTop: 6
+    }
+  }, NAV.map(item => /*#__PURE__*/React.createElement("button", {
+    key: item.id,
+    onClick: () => setActive(item.id),
+    className: `nav-item ${active === item.id ? 'active' : ''}`,
+    style: {
+      color: active === item.id ? 'white' : '#abc1df',
+      fontWeight: active === item.id ? 600 : 400,
+      fontSize: 13
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 15,
+      flexShrink: 0
+    }
+  }, item.icon), !collapsed && /*#__PURE__*/React.createElement("span", null, item.label)))), !collapsed && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '10px 12px',
+      borderTop: '1px solid rgba(255,255,255,.1)',
+      fontSize: 10,
+      color: '#5683be'
+    }
+  }, "v0.1.0 MVP Prototype"));
+}
+
+// OVERVIEW
+function Overview() {
+  const total = DEMO_RECORDS.length,
+    attr = DEMO_RECORDS.filter(r => r.building_id).length;
+  const attrP = (attr / total * 100).toFixed(1),
+    wt = DEMO_RECORDS.reduce((s, r) => s + r.net_lbs, 0);
+  const streamData = STREAMS.map(s => ({
+    name: s,
+    value: DEMO_RECORDS.filter(r => r.stream === s).reduce((a, r) => a + r.net_lbs, 0)
+  }));
+  const bldData = BUILDINGS.slice(0, 8).map(b => ({
+    name: b.abbr,
+    weight: DEMO_RECORDS.filter(r => r.building_id === b.id).reduce((a, r) => a + r.net_lbs, 0) || 0,
+    full: b.name
+  })).filter(b => b.weight > 0).sort((a, b) => b.weight - a.weight);
+  const td = DEMO_TREND.map(d => ({
+    ...d,
+    total: d.generalWaste + d.recycling + d.compost + d.landfill
+  }));
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 24,
+      overflowY: 'auto'
+    }
+  }, /*#__PURE__*/React.createElement(SH, {
+    title: "Waste Intelligence Dashboard",
+    sub: "Overview of EnviroTrap Nexus data, research status, and collection analytics",
+    action: /*#__PURE__*/React.createElement("span", {
+      className: "badge badge-amber"
+    }, "Demo Mode")
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(4,1fr)',
+      gap: 14,
+      marginBottom: 20
+    }
+  }, /*#__PURE__*/React.createElement(StatCard, {
+    label: "Total Pickup Records",
+    value: total.toLocaleString(),
+    sub: "Simulated LoadMan records",
+    color: "navy"
+  }), /*#__PURE__*/React.createElement(StatCard, {
+    label: "Total Net Weight",
+    value: `${(wt / 2000).toFixed(1)} tons`,
+    sub: `${wt.toLocaleString()} lbs`,
+    color: "green"
+  }), /*#__PURE__*/React.createElement(StatCard, {
+    label: "Building Attribution",
+    value: `${attrP}%`,
+    sub: `${attr} of ${total} records`,
+    color: "amber"
+  }), /*#__PURE__*/React.createElement(StatCard, {
+    label: "Missing Attribution",
+    value: `${(100 - parseFloat(attrP)).toFixed(1)}%`,
+    sub: "Records without building ID",
+    color: "red"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 14,
+      marginBottom: 20,
+      borderLeft: '4px solid #e9a825',
+      background: '#fef9ec'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 16
+    }
+  }, "ℹ️"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      color: '#92400e',
+      fontSize: 13,
+      marginBottom: 3
+    }
+  }, "Research Context — Historical Finding"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: '#92400e',
+      lineHeight: 1.6
+    }
+  }, "EnviroTrap analysis of approximately ", /*#__PURE__*/React.createElement("strong", null, "79,533"), " historical LoadMan truck-weight records found only ", /*#__PURE__*/React.createElement("strong", null, "9,989"), " (~12.6%) could be attributed to specific buildings. This does not mean 87.4% of campus waste is untracked — it reflects limitations in building attribution within the analyzed dataset. Demo records simulate a similar attribution pattern.")))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 20,
+      marginBottom: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 13,
+      color: '#1e3a5f',
+      marginBottom: 10
+    }
+  }, "Collection Weight Trend (Monthly)"), /*#__PURE__*/React.createElement(ResponsiveContainer, {
+    width: "100%",
+    height: 190
+  }, /*#__PURE__*/React.createElement(AreaChart, {
+    data: td,
+    margin: {
+      top: 5,
+      right: 10,
+      left: 0,
+      bottom: 0
+    }
+  }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
+    id: "g1",
+    x1: "0",
+    y1: "0",
+    x2: "0",
+    y2: "1"
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "5%",
+    stopColor: "#1e3a5f",
+    stopOpacity: 0.25
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "95%",
+    stopColor: "#1e3a5f",
+    stopOpacity: 0
+  }))), /*#__PURE__*/React.createElement(CartesianGrid, {
+    strokeDasharray: "3 3",
+    stroke: "#e4d5b5"
+  }), /*#__PURE__*/React.createElement(XAxis, {
+    dataKey: "month",
+    tick: {
+      fontSize: 9
+    },
+    interval: 2
+  }), /*#__PURE__*/React.createElement(YAxis, {
+    tick: {
+      fontSize: 9
+    },
+    tickFormatter: v => `${(v / 1000).toFixed(0)}k`
+  }), /*#__PURE__*/React.createElement(Tooltip, {
+    formatter: v => [`${v.toLocaleString()} lbs`, 'Total']
+  }), /*#__PURE__*/React.createElement(Area, {
+    type: "monotone",
+    dataKey: "total",
+    stroke: "#1e3a5f",
+    fill: "url(#g1)",
+    strokeWidth: 2
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 13,
+      color: '#1e3a5f',
+      marginBottom: 10
+    }
+  }, "Waste Stream Distribution"), /*#__PURE__*/React.createElement(ResponsiveContainer, {
+    width: "100%",
+    height: 190
+  }, /*#__PURE__*/React.createElement(PieChart, null, /*#__PURE__*/React.createElement(Pie, {
+    data: streamData,
+    cx: "50%",
+    cy: "50%",
+    innerRadius: 48,
+    outerRadius: 76,
+    dataKey: "value",
+    nameKey: "name",
+    label: ({
+      name,
+      percent
+    }) => `${name.split(' ')[0]} ${(percent * 100).toFixed(0)}%`,
+    labelLine: false,
+    fontSize: 9
+  }, streamData.map((e, i) => /*#__PURE__*/React.createElement(Cell, {
+    key: i,
+    fill: SC[i % SC.length]
+  }))), /*#__PURE__*/React.createElement(Tooltip, {
+    formatter: v => `${v.toLocaleString()} lbs`
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 13,
+      color: '#1e3a5f',
+      marginBottom: 10
+    }
+  }, "Weight by Building (Attributed Records Only)"), bldData.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'center',
+      color: '#9ca3af',
+      padding: '40px 0'
+    }
+  }, "No attributed records") : /*#__PURE__*/React.createElement(ResponsiveContainer, {
+    width: "100%",
+    height: 190
+  }, /*#__PURE__*/React.createElement(BarChart, {
+    data: bldData,
+    margin: {
+      top: 5,
+      right: 10,
+      left: 0,
+      bottom: 0
+    }
+  }, /*#__PURE__*/React.createElement(CartesianGrid, {
+    strokeDasharray: "3 3",
+    stroke: "#e4d5b5"
+  }), /*#__PURE__*/React.createElement(XAxis, {
+    dataKey: "name",
+    tick: {
+      fontSize: 10
+    }
+  }), /*#__PURE__*/React.createElement(YAxis, {
+    tick: {
+      fontSize: 10
+    },
+    tickFormatter: v => `${(v / 1000).toFixed(0)}k`
+  }), /*#__PURE__*/React.createElement(Tooltip, {
+    formatter: (v, n, p) => [`${v.toLocaleString()} lbs`, p.payload.full]
+  }), /*#__PURE__*/React.createElement(Bar, {
+    dataKey: "weight",
+    fill: "#2d6a4f",
+    radius: [3, 3, 0, 0]
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 13,
+      color: '#1e3a5f',
+      marginBottom: 10
+    }
+  }, "Data Quality Assessment"), /*#__PURE__*/React.createElement(QBar, {
+    pct: DEMO_RECORDS.filter(r => r.date && r.time).length / total * 100,
+    label: "Records with usable timestamp"
+  }), /*#__PURE__*/React.createElement(QBar, {
+    pct: DEMO_RECORDS.filter(r => r.container).length / total * 100,
+    label: "Records with container identifier"
+  }), /*#__PURE__*/React.createElement(QBar, {
+    pct: attr / total * 100,
+    label: "Records with building attribution"
+  }), /*#__PURE__*/React.createElement(QBar, {
+    pct: DEMO_RECORDS.filter(r => r.has_rfid).length / total * 100,
+    label: "Records with RFID field populated"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: '#9ca3af',
+      borderTop: '1px solid #f0e8d5',
+      paddingTop: 8,
+      marginTop: 6
+    }
+  }, "Attribution gap is the primary data quality challenge. RFID operational status unconfirmed with F&S."))), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 13,
+      color: '#1e3a5f',
+      marginBottom: 10
+    }
+  }, "Active Research Recommendations"), DEMO_INSIGHTS.filter(i => i.status === 'Recommended for Action' || i.status === 'Validated').map(ins => /*#__PURE__*/React.createElement("div", {
+    key: ins.id,
+    className: "card insight-card",
+    style: {
+      padding: 12,
+      marginBottom: 8,
+      borderLeftColor: ins.status === 'Validated' ? '#2d6a4f' : '#e9a825'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 13,
+      color: '#1e3a5f'
+    }
+  }, ins.title), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: '#6b7280',
+      marginTop: 2
+    }
+  }, ins.recommendation)), /*#__PURE__*/React.createElement(Badge, {
+    status: ins.status
+  }))))));
+}
+
+// WASTE EXPLORER
+function WasteExplorer() {
+  const [filter, setFilter] = useState({
+    building: '',
+    stream: '',
+    route: '',
+    search: ''
+  });
+  const [page, setPage] = useState(0);
+  const [modal, setModal] = useState(false);
+  const [step, setStep] = useState(0);
+  const [csv, setCsv] = useState(null);
+  const [cm, setCm] = useState({});
+  const PS = 15;
+  const filtered = useMemo(() => DEMO_RECORDS.filter(r => {
+    if (filter.building && r.building_id !== filter.building) return false;
+    if (filter.stream && r.stream !== filter.stream) return false;
+    if (filter.route && r.route !== filter.route) return false;
+    if (filter.search && !JSON.stringify(r).toLowerCase().includes(filter.search.toLowerCase())) return false;
+    return true;
+  }), [filter]);
+  const paged = filtered.slice(page * PS, (page + 1) * PS);
+  const tp = Math.ceil(filtered.length / PS);
+  const att = DEMO_RECORDS.filter(r => r.building_id).length;
+  function handleCSV(e) {
+    const f = e.target.files[0];
+    if (!f) return;
+    const rd = new FileReader();
+    rd.onload = ev => {
+      const lines = ev.target.result.split('\n').filter(l => l.trim());
+      const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+      const rows = lines.slice(1, 6).map(l => {
+        const v = l.split(',').map(x => x.trim().replace(/^"|"$/g, ''));
+        const o = {};
+        headers.forEach((h, i) => {
+          o[h] = v[i] || '';
+        });
+        return o;
+      });
+      setCsv({
+        headers,
+        rows,
+        total: lines.length - 1,
+        filename: f.name
+      });
+      const a = {};
+      headers.forEach(h => {
+        const lh = h.toLowerCase();
+        if (lh.includes('date')) a.date = h;
+        if (lh.includes('gross')) a.gross = h;
+        if (lh.includes('net')) a.net = h;
+        if (lh.includes('route')) a.route = h;
+        if (lh.includes('building')) a.building = h;
+        if (lh.includes('stream')) a.stream = h;
+        if (lh.includes('container')) a.container = h;
+      });
+      setCm(a);
+      setStep(1);
+    };
+    rd.readAsText(f);
+  }
+  function exp() {
+    const hdr = 'ID,Date,Time,Route,Building,Container,Stream,Gross,Net,RFID,Notes';
+    const rows = filtered.map(r => [r.id, r.date, r.time, r.route, r.building_name || 'Unknown', r.container, r.stream, r.gross_lbs, r.net_lbs, r.has_rfid ? 'Yes' : 'No', r.notes || ''].join(','));
+    const blob = new Blob([[hdr, ...rows].join('\n')], {
+      type: 'text/csv'
+    });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'envirotrap_records.csv';
+    a.click();
+  }
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 24
+    }
+  }, /*#__PURE__*/React.createElement(SH, {
+    title: "Waste Explorer",
+    sub: "Upload, map, validate, and explore LoadMan waste records",
+    action: /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-secondary btn-sm",
+      onClick: exp
+    }, "↓ Export CSV"), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-primary btn-sm",
+      onClick: () => {
+        setModal(true);
+        setStep(0);
+        setCsv(null);
+      }
+    }, "↑ Import Records"))
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(5,1fr)',
+      gap: 12,
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement(StatCard, {
+    label: "Total Records",
+    value: DEMO_RECORDS.length.toLocaleString(),
+    color: "navy"
+  }), /*#__PURE__*/React.createElement(StatCard, {
+    label: "With Timestamp",
+    value: DEMO_RECORDS.filter(r => r.date && r.time).length,
+    color: "green"
+  }), /*#__PURE__*/React.createElement(StatCard, {
+    label: "With Container",
+    value: DEMO_RECORDS.filter(r => r.container).length,
+    color: "green"
+  }), /*#__PURE__*/React.createElement(StatCard, {
+    label: "Attribution Rate",
+    value: `${(att / DEMO_RECORDS.length * 100).toFixed(1)}%`,
+    color: "amber"
+  }), /*#__PURE__*/React.createElement(StatCard, {
+    label: "RFID Populated",
+    value: DEMO_RECORDS.filter(r => r.has_rfid).length,
+    sub: "Op. status unconfirmed",
+    color: "amber"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 14,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(4,1fr)',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 4
+    }
+  }, "Search"), /*#__PURE__*/React.createElement("input", {
+    placeholder: "Search records...",
+    value: filter.search,
+    onChange: e => {
+      setFilter({
+        ...filter,
+        search: e.target.value
+      });
+      setPage(0);
+    }
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 4
+    }
+  }, "Building"), /*#__PURE__*/React.createElement("select", {
+    value: filter.building,
+    onChange: e => {
+      setFilter({
+        ...filter,
+        building: e.target.value
+      });
+      setPage(0);
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "All Buildings"), BUILDINGS.map(b => /*#__PURE__*/React.createElement("option", {
+    key: b.id,
+    value: b.id
+  }, b.name)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 4
+    }
+  }, "Stream"), /*#__PURE__*/React.createElement("select", {
+    value: filter.stream,
+    onChange: e => {
+      setFilter({
+        ...filter,
+        stream: e.target.value
+      });
+      setPage(0);
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "All Streams"), STREAMS.map(s => /*#__PURE__*/React.createElement("option", {
+    key: s
+  }, s)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 4
+    }
+  }, "Route"), /*#__PURE__*/React.createElement("select", {
+    value: filter.route,
+    onChange: e => {
+      setFilter({
+        ...filter,
+        route: e.target.value
+      });
+      setPage(0);
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "All Routes"), ROUTES.map(r => /*#__PURE__*/React.createElement("option", {
+    key: r
+  }, r))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8,
+      fontSize: 12,
+      color: '#9ca3af'
+    }
+  }, "Showing ", filtered.length, " of ", DEMO_RECORDS.length, " records")), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      overflow: 'hidden'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      overflowX: 'auto'
+    }
+  }, /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Record ID"), /*#__PURE__*/React.createElement("th", null, "Date/Time"), /*#__PURE__*/React.createElement("th", null, "Route"), /*#__PURE__*/React.createElement("th", null, "Building"), /*#__PURE__*/React.createElement("th", null, "Container"), /*#__PURE__*/React.createElement("th", null, "Stream"), /*#__PURE__*/React.createElement("th", null, "Net Weight"), /*#__PURE__*/React.createElement("th", null, "RFID"), /*#__PURE__*/React.createElement("th", null, "Notes"))), /*#__PURE__*/React.createElement("tbody", null, paged.map(r => /*#__PURE__*/React.createElement("tr", {
+    key: r.id
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      fontFamily: 'monospace',
+      fontSize: 11
+    }
+  }, r.id), /*#__PURE__*/React.createElement("td", null, r.date, " ", r.time), /*#__PURE__*/React.createElement("td", {
+    style: {
+      fontSize: 11
+    }
+  }, r.route), /*#__PURE__*/React.createElement("td", null, r.building_name ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: '#235441',
+      fontWeight: 500
+    }
+  }, r.building_name) : /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: '#9ca3af',
+      fontStyle: 'italic'
+    }
+  }, "Unknown")), /*#__PURE__*/React.createElement("td", {
+    style: {
+      fontSize: 11
+    }
+  }, r.container), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
+    className: "badge badge-navy"
+  }, r.stream)), /*#__PURE__*/React.createElement("td", {
+    style: {
+      fontWeight: 500
+    }
+  }, r.net_lbs.toLocaleString(), " lbs"), /*#__PURE__*/React.createElement("td", null, r.has_rfid ? /*#__PURE__*/React.createElement("span", {
+    className: "badge badge-green"
+  }, "Yes") : /*#__PURE__*/React.createElement("span", {
+    className: "badge badge-gray"
+  }, "No")), /*#__PURE__*/React.createElement("td", {
+    style: {
+      fontSize: 11,
+      color: '#9ca3af',
+      maxWidth: 160,
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
+    }
+  }, r.notes || '—')))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '10px 16px',
+      borderTop: '1px solid #f0e8d5'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: '#9ca3af'
+    }
+  }, "Page ", page + 1, " of ", tp), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-secondary btn-sm",
+    disabled: page === 0,
+    onClick: () => setPage(p => p - 1)
+  }, "Prev"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-secondary btn-sm",
+    disabled: page >= tp - 1,
+    onClick: () => setPage(p => p + 1)
+  }, "Next")))), modal && /*#__PURE__*/React.createElement(Modal, {
+    title: "Import Records",
+    onClose: () => setModal(false)
+  }, step === 0 && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 13,
+      color: '#6b7280',
+      marginBottom: 16
+    }
+  }, "Upload a CSV file containing LoadMan truck-weight records. Original data will be preserved and all transformations logged."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: '2px dashed #abc1df',
+      borderRadius: 8,
+      padding: 32,
+      textAlign: 'center'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 32,
+      marginBottom: 8
+    }
+  }, "📂"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 500,
+      color: '#1e3a5f',
+      marginBottom: 4
+    }
+  }, "Drop a CSV file here or click to browse"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: '#9ca3af',
+      marginBottom: 16
+    }
+  }, "Supported: .csv, .xlsx (as CSV)"), /*#__PURE__*/React.createElement("label", {
+    className: "btn btn-primary",
+    style: {
+      cursor: 'pointer'
+    }
+  }, "Select File", /*#__PURE__*/React.createElement("input", {
+    type: "file",
+    accept: ".csv,.xlsx",
+    style: {
+      display: 'none'
+    },
+    onChange: handleCSV
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14,
+      padding: 12,
+      background: '#fef9ec',
+      borderRadius: 6,
+      fontSize: 12,
+      color: '#92400e',
+      border: '1px solid #fde68a'
+    }
+  }, /*#__PURE__*/React.createElement("strong", null, "Demo note:"), " This interface parses CSV files and maps columns. In production, records would be validated and stored with a full audit trail.")), step === 1 && csv && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+    className: "badge badge-green",
+    style: {
+      marginBottom: 12,
+      display: 'inline-block'
+    }
+  }, "Parsed: ", csv.filename, " — ", csv.total, " rows"), /*#__PURE__*/React.createElement("h4", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      marginBottom: 8
+    }
+  }, "Column Mapping"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gap: 8,
+      marginBottom: 14
+    }
+  }, ['date', 'gross', 'net', 'route', 'building', 'stream', 'container'].map(f => /*#__PURE__*/React.createElement("div", {
+    key: f,
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 12,
+      fontWeight: 500,
+      color: '#1e3a5f',
+      width: 90,
+      flexShrink: 0
+    }
+  }, f), /*#__PURE__*/React.createElement("select", {
+    style: {
+      flex: 1
+    },
+    value: cm[f] || '',
+    onChange: e => setCm({
+      ...cm,
+      [f]: e.target.value
+    })
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "— not mapped —"), csv.headers.map(h => /*#__PURE__*/React.createElement("option", {
+    key: h,
+    value: h
+  }, h)))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      justifyContent: 'flex-end'
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-secondary",
+    onClick: () => setStep(0)
+  }, "Back"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-green",
+    onClick: () => {
+      alert('In production, records would be validated and stored. This demo shows the mapping interface.');
+      setModal(false);
+    }
+  }, "Validate and Import")))));
+}
+
+// SOURCE MAPPER
+function SourceMapper() {
+  const [sel, setSel] = useState(null);
+  const [search, setSearch] = useState('');
+  const fb = BUILDINGS.filter(b => b.name.toLowerCase().includes(search.toLowerCase()) || b.abbr.toLowerCase().includes(search.toLowerCase()));
+  const bld = sel ? BUILDINGS.find(b => b.id === sel) : null;
+  const br = bld ? DEMO_RECORDS.filter(r => r.building_id === bld.id) : [];
+  const ba = bld ? DEMO_AUDITS.filter(a => a.building_id === bld.id) : [];
+  function JStep({
+    label,
+    status,
+    icon
+  }) {
+    const bg = {
+      Verified: '#cce5d8',
+      Inferred: '#fdf0c4',
+      Unknown: '#f3f4f6'
+    };
+    const bd = {
+      Verified: '#66b089',
+      Inferred: '#f5b820',
+      Unknown: '#d1d5db'
+    };
+    const tc = {
+      Verified: '#1a3d30',
+      Inferred: '#92400e',
+      Unknown: '#6b7280'
+    };
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 4
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: bg[status],
+        border: `2px solid ${bd[status]}`,
+        borderRadius: 8,
+        padding: '8px 10px',
+        textAlign: 'center',
+        minWidth: 88
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 18
+      }
+    }, icon), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10,
+        fontWeight: 600,
+        color: tc[status],
+        marginTop: 2
+      }
+    }, label), /*#__PURE__*/React.createElement(Badge, {
+      status: status
+    })));
+  }
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 24
+    }
+  }, /*#__PURE__*/React.createElement(SH, {
+    title: "Waste Source Mapper",
+    sub: "Explore building-level waste data and trace collection journeys"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '210px 1fr',
+      gap: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 14,
+      maxHeight: 'calc(100vh - 180px)',
+      overflowY: 'auto'
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    placeholder: "Search buildings...",
+    value: search,
+    onChange: e => setSearch(e.target.value),
+    style: {
+      marginBottom: 10
+    }
+  }), fb.map(b => {
+    const rc = DEMO_RECORDS.filter(r => r.building_id === b.id);
+    return /*#__PURE__*/React.createElement("button", {
+      key: b.id,
+      onClick: () => setSel(b.id),
+      style: {
+        width: '100%',
+        textAlign: 'left',
+        padding: '8px 10px',
+        borderRadius: 8,
+        border: `1px solid ${sel === b.id ? '#3b6fae' : 'transparent'}`,
+        background: sel === b.id ? '#eef2f8' : 'transparent',
+        cursor: 'pointer',
+        marginBottom: 2
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        fontWeight: 500,
+        color: '#1e3a5f'
+      }
+    }, b.name), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: 6,
+        alignItems: 'center',
+        marginTop: 2
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: '#9ca3af'
+      }
+    }, b.type), rc.length > 0 ? /*#__PURE__*/React.createElement("span", {
+      className: "badge badge-green"
+    }, rc.length) : /*#__PURE__*/React.createElement("span", {
+      className: "badge badge-gray"
+    }, "No data")));
+  })), /*#__PURE__*/React.createElement("div", null, !bld ? /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 40,
+      textAlign: 'center',
+      color: '#9ca3af'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 40,
+      marginBottom: 12
+    }
+  }, "🏛"), /*#__PURE__*/React.createElement("div", null, "Select a building to explore its waste profile")) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between'
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 17,
+      fontWeight: 700,
+      color: '#1e3a5f'
+    }
+  }, bld.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: '#9ca3af'
+    }
+  }, bld.type, " — ", bld.sqft.toLocaleString(), " sq ft — ", bld.floors, " floors")), /*#__PURE__*/React.createElement("span", {
+    className: "badge badge-navy"
+  }, bld.abbr))), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: '#1e3a5f',
+      marginBottom: 14
+    }
+  }, "Waste Journey Traceability"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      flexWrap: 'wrap'
+    }
+  }, /*#__PURE__*/React.createElement(JStep, {
+    label: "Campus Building",
+    status: "Verified",
+    icon: "🏛"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 24,
+      height: 2,
+      background: '#d1d5db'
+    }
+  }), /*#__PURE__*/React.createElement(JStep, {
+    label: "Collection Point",
+    status: br.length > 0 ? 'Verified' : 'Unknown',
+    icon: "🗑"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 24,
+      height: 2,
+      background: '#d1d5db'
+    }
+  }), /*#__PURE__*/React.createElement(JStep, {
+    label: "Truck Pickup",
+    status: br.length > 0 ? 'Verified' : 'Unknown',
+    icon: "🚛"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 24,
+      height: 2,
+      background: '#d1d5db'
+    }
+  }), /*#__PURE__*/React.createElement(JStep, {
+    label: "Waste Transfer Station",
+    status: br.length > 0 ? 'Inferred' : 'Unknown',
+    icon: "🏭"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 24,
+      height: 2,
+      background: '#d1d5db'
+    }
+  }), /*#__PURE__*/React.createElement(JStep, {
+    label: "Downstream",
+    status: "Unknown",
+    icon: "♻️"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 16,
+      justifyContent: 'center',
+      marginTop: 10,
+      fontSize: 11,
+      color: '#9ca3af'
+    }
+  }, "Green = Verified — Yellow = Inferred — Gray = Unknown")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(3,1fr)',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement(StatCard, {
+    label: "Pickup Records",
+    value: br.length === 0 ? 'None' : br.length,
+    sub: br.length === 0 ? 'No attribution' : 'Attributed',
+    color: br.length > 0 ? 'green' : 'amber'
+  }), /*#__PURE__*/React.createElement(StatCard, {
+    label: "Total Net Weight",
+    value: br.length > 0 ? `${br.reduce((a, r) => a + r.net_lbs, 0).toLocaleString()} lbs` : 'Unknown',
+    color: br.length > 0 ? 'navy' : 'amber'
+  }), /*#__PURE__*/React.createElement(StatCard, {
+    label: "Waste Audits",
+    value: ba.length,
+    color: "navy"
+  })), br.length > 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      overflow: 'hidden'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '10px 14px',
+      borderBottom: '1px solid #f0e8d5',
+      fontSize: 13,
+      fontWeight: 600,
+      color: '#1e3a5f'
+    }
+  }, "Pickup Records"), /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Date"), /*#__PURE__*/React.createElement("th", null, "Route"), /*#__PURE__*/React.createElement("th", null, "Container"), /*#__PURE__*/React.createElement("th", null, "Stream"), /*#__PURE__*/React.createElement("th", null, "Net Weight"))), /*#__PURE__*/React.createElement("tbody", null, br.slice(0, 8).map(r => /*#__PURE__*/React.createElement("tr", {
+    key: r.id
+  }, /*#__PURE__*/React.createElement("td", null, r.date), /*#__PURE__*/React.createElement("td", {
+    style: {
+      fontSize: 11
+    }
+  }, r.route), /*#__PURE__*/React.createElement("td", {
+    style: {
+      fontSize: 11
+    }
+  }, r.container), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
+    className: "badge badge-navy"
+  }, r.stream)), /*#__PURE__*/React.createElement("td", {
+    style: {
+      fontWeight: 500
+    }
+  }, r.net_lbs.toLocaleString(), " lbs")))))) : /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 14,
+      borderLeft: '4px solid #f5b820',
+      background: '#fef9ec'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: '#92400e'
+    }
+  }, /*#__PURE__*/React.createElement("strong", null, "No pickup records found for ", bld.name, "."), /*#__PURE__*/React.createElement("br", null), "This building may have pickups under unattributed records. Missing data should not be interpreted as zero waste generation.")), ba.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: '#1e3a5f',
+      marginBottom: 8
+    }
+  }, "Waste Audits"), ba.map(a => /*#__PURE__*/React.createElement("div", {
+    key: a.id,
+    style: {
+      border: '1px solid #f0e8d5',
+      borderRadius: 6,
+      padding: 10,
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 500,
+      fontSize: 13
+    }
+  }, a.title), /*#__PURE__*/React.createElement(Badge, {
+    status: a.status
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: '#9ca3af',
+      marginTop: 2
+    }
+  }, a.date, " — ", a.stream, " — ", a.sample_weight_lbs ? `${a.sample_weight_lbs} lbs` : 'Not recorded'))))))));
+}
+
+// COLLECTION LOG
+function CollectionLog() {
+  const [form, setForm] = useState({
+    route: '',
+    building: '',
+    container: '',
+    time: new Date().toTimeString().slice(0, 5),
+    gross: '',
+    tare: '',
+    stream: '',
+    notes: '',
+    flags: []
+  });
+  const [logs, setLogs] = useState([]);
+  const [ok, setOk] = useState(false);
+  const net = form.gross && form.tare ? (parseFloat(form.gross) - parseFloat(form.tare)).toFixed(1) : form.gross ? form.gross : '';
+  const FLAGS = ['Container overfull', 'Access blocked', 'Contamination observed', 'Damaged container', 'Safety concern', 'Unusual odor'];
+  function tf(f) {
+    setForm(p => ({
+      ...p,
+      flags: p.flags.includes(f) ? p.flags.filter(x => x !== f) : [...p.flags, f]
+    }));
+  }
+  function sub() {
+    if (!form.route || !form.building || !form.container || !form.stream) {
+      alert('Please complete Route, Building, Container, and Stream.');
+      return;
+    }
+    const b = BUILDINGS.find(x => x.id === form.building);
+    setLogs(p => [{
+      id: `COL${Date.now()}`,
+      date: new Date().toISOString().split('T')[0],
+      time: form.time,
+      route: form.route,
+      building_name: b?.name || 'Unknown',
+      container: form.container,
+      stream: form.stream,
+      net: net || 'Not calculated',
+      notes: form.notes,
+      flags: form.flags
+    }, ...p]);
+    setOk(true);
+    setTimeout(() => {
+      setOk(false);
+      setForm({
+        route: '',
+        building: '',
+        container: '',
+        time: new Date().toTimeString().slice(0, 5),
+        gross: '',
+        tare: '',
+        stream: '',
+        notes: '',
+        flags: []
+      });
+    }, 2200);
+  }
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 16,
+      maxWidth: 540,
+      margin: '0 auto'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'center',
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 20,
+      fontWeight: 700,
+      color: '#1e3a5f'
+    }
+  }, "Collection Log"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: '#9ca3af'
+    }
+  }, "Driver interface")), ok && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: '#cce5d8',
+      border: '1px solid #66b089',
+      color: '#1a3d30',
+      padding: 16,
+      borderRadius: 8,
+      textAlign: 'center',
+      fontWeight: 600,
+      marginBottom: 12
+    }
+  }, "Collection logged successfully"), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 16,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: '#1e3a5f',
+      display: 'block',
+      marginBottom: 4,
+      textTransform: 'uppercase'
+    }
+  }, "Route *"), /*#__PURE__*/React.createElement("select", {
+    value: form.route,
+    onChange: e => setForm({
+      ...form,
+      route: e.target.value
+    }),
+    style: {
+      fontSize: 14,
+      padding: '10px 12px'
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Select route..."), ROUTES.map(r => /*#__PURE__*/React.createElement("option", {
+    key: r
+  }, r)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: '#1e3a5f',
+      display: 'block',
+      marginBottom: 4,
+      textTransform: 'uppercase'
+    }
+  }, "Building *"), /*#__PURE__*/React.createElement("select", {
+    value: form.building,
+    onChange: e => setForm({
+      ...form,
+      building: e.target.value
+    }),
+    style: {
+      fontSize: 14,
+      padding: '10px 12px'
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Select building..."), BUILDINGS.filter(b => b.id !== 'B015').map(b => /*#__PURE__*/React.createElement("option", {
+    key: b.id,
+    value: b.id
+  }, b.name)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: '#1e3a5f',
+      display: 'block',
+      marginBottom: 4,
+      textTransform: 'uppercase'
+    }
+  }, "Container *"), /*#__PURE__*/React.createElement("select", {
+    value: form.container,
+    onChange: e => setForm({
+      ...form,
+      container: e.target.value
+    }),
+    style: {
+      fontSize: 14,
+      padding: '10px 12px'
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Select container..."), CONTAINERS.map(c => /*#__PURE__*/React.createElement("option", {
+    key: c
+  }, c)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: '#1e3a5f',
+      display: 'block',
+      marginBottom: 4,
+      textTransform: 'uppercase'
+    }
+  }, "Waste Stream *"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 8
+    }
+  }, STREAMS.map(s => /*#__PURE__*/React.createElement("button", {
+    key: s,
+    onClick: () => setForm({
+      ...form,
+      stream: s
+    }),
+    style: {
+      padding: 10,
+      borderRadius: 8,
+      border: `2px solid ${form.stream === s ? '#1e3a5f' : '#e4d5b5'}`,
+      background: form.stream === s ? '#1e3a5f' : 'white',
+      color: form.stream === s ? 'white' : '#1e3a5f',
+      fontWeight: 500,
+      fontSize: 12,
+      cursor: 'pointer'
+    }
+  }, s)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: '#1e3a5f',
+      display: 'block',
+      marginBottom: 4,
+      textTransform: 'uppercase'
+    }
+  }, "Gross Weight (lbs)"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    placeholder: "e.g. 1450",
+    value: form.gross,
+    onChange: e => setForm({
+      ...form,
+      gross: e.target.value
+    }),
+    style: {
+      fontSize: 14,
+      padding: '10px 12px'
+    }
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: '#1e3a5f',
+      display: 'block',
+      marginBottom: 4,
+      textTransform: 'uppercase'
+    }
+  }, "Tare Weight (lbs)"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    placeholder: "e.g. 320",
+    value: form.tare,
+    onChange: e => setForm({
+      ...form,
+      tare: e.target.value
+    }),
+    style: {
+      fontSize: 14,
+      padding: '10px 12px'
+    }
+  }))), net && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: '#edf5f1',
+      border: '1px solid #66b089',
+      borderRadius: 8,
+      padding: 12,
+      textAlign: 'center'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: '#235441',
+      fontWeight: 600,
+      textTransform: 'uppercase'
+    }
+  }, "Calculated Net Weight"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 28,
+      fontWeight: 700,
+      color: '#1a3d30'
+    }
+  }, parseFloat(net).toLocaleString(), " lbs")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: '#1e3a5f',
+      display: 'block',
+      marginBottom: 4,
+      textTransform: 'uppercase'
+    }
+  }, "Flag Conditions"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 6
+    }
+  }, FLAGS.map(f => /*#__PURE__*/React.createElement("label", {
+    key: f,
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      padding: '6px 8px',
+      borderRadius: 6,
+      border: `1px solid ${form.flags.includes(f) ? '#f5b820' : '#e4d5b5'}`,
+      background: form.flags.includes(f) ? '#fdf0c4' : 'white',
+      cursor: 'pointer',
+      fontSize: 12,
+      color: form.flags.includes(f) ? '#92400e' : '#6b7280'
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: form.flags.includes(f),
+    onChange: () => tf(f),
+    style: {
+      width: 'auto'
+    }
+  }), f)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: '#1e3a5f',
+      display: 'block',
+      marginBottom: 4,
+      textTransform: 'uppercase'
+    }
+  }, "Notes"), /*#__PURE__*/React.createElement("textarea", {
+    rows: 3,
+    placeholder: "Operational observations...",
+    value: form.notes,
+    onChange: e => setForm({
+      ...form,
+      notes: e.target.value
+    }),
+    style: {
+      fontSize: 13
+    }
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: sub,
+    className: "btn btn-green",
+    style: {
+      width: '100%',
+      justifyContent: 'center',
+      padding: '12px',
+      fontSize: 15
+    }
+  }, "Save Collection Record"))), logs.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: '#1e3a5f',
+      marginBottom: 10
+    }
+  }, "Today's Logs (", logs.length, ")"), logs.map(l => /*#__PURE__*/React.createElement("div", {
+    key: l.id,
+    style: {
+      border: '1px solid #f0e8d5',
+      borderRadius: 6,
+      padding: 10,
+      marginBottom: 6,
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 600
+    }
+  }, l.building_name), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: '#9ca3af'
+    }
+  }, l.time)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: '#6b7280',
+      marginTop: 2
+    }
+  }, l.route, " — ", l.stream, " — Net: ", l.net, " lbs"), l.flags.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 4,
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: 4
+    }
+  }, l.flags.map(f => /*#__PURE__*/React.createElement("span", {
+    key: f,
+    className: "badge badge-amber"
+  }, f)))))));
+}
+
+// WASTE AUDITS
+function WasteAudits() {
+  const [audits, setAudits] = useState(DEMO_AUDITS);
+  const [sel, setSel] = useState(null);
+  const [modal, setModal] = useState(false);
+  const [nA, setNA] = useState({
+    title: '',
+    building_id: '',
+    date: '',
+    stream: 'General Waste',
+    location: '',
+    auditors: '',
+    notes: ''
+  });
+  const MATS = ['Paper', 'Cardboard', 'Plastics', 'Metals', 'Glass', 'Food Waste', 'Paper Towels', 'Other'];
+  function AuditDetail({
+    audit
+  }) {
+    const [mats, setMats] = useState(audit.materials.length > 0 ? audit.materials : MATS.map(n => ({
+      name: n,
+      weight: 0
+    })));
+    const total = mats.reduce((s, m) => s + (parseFloat(m.weight) || 0), 0);
+    const pie = mats.filter(m => parseFloat(m.weight) > 0).map(m => ({
+      name: m.name,
+      value: parseFloat(m.weight) || 0
+    }));
+    function expAudit() {
+      const blob = new Blob([['Audit,Building,Date,Material,Weight,Pct', ...mats.filter(m => m.weight > 0).map(m => [audit.id, audit.building_name, audit.date, m.name, m.weight, total > 0 ? (m.weight / total * 100).toFixed(1) + '%' : ''].join(','))].join('\n')], {
+        type: 'text/csv'
+      });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `audit_${audit.id}.csv`;
+      a.click();
+    }
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: 24,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 16
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-secondary btn-sm",
+      onClick: () => setSel(null)
+    }, "Back"), /*#__PURE__*/React.createElement("h3", {
+      style: {
+        flex: 1,
+        fontWeight: 700,
+        color: '#1e3a5f',
+        fontSize: 15,
+        margin: 0
+      }
+    }, audit.title), /*#__PURE__*/React.createElement(Badge, {
+      status: audit.status
+    }), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-secondary btn-sm",
+      onClick: expAudit
+    }, "Export")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4,1fr)',
+        gap: 12
+      }
+    }, /*#__PURE__*/React.createElement(StatCard, {
+      label: "Building",
+      value: audit.building_name || '—',
+      color: "navy"
+    }), /*#__PURE__*/React.createElement(StatCard, {
+      label: "Date",
+      value: audit.date || '—',
+      color: "navy"
+    }), /*#__PURE__*/React.createElement(StatCard, {
+      label: "Stream",
+      value: audit.stream,
+      color: "navy"
+    }), /*#__PURE__*/React.createElement(StatCard, {
+      label: "Sample Weight",
+      value: total > 0 ? `${total.toFixed(1)} lbs` : audit.sample_weight_lbs ? `${audit.sample_weight_lbs} lbs` : 'Not recorded',
+      color: total > 0 ? 'green' : 'amber'
+    })), audit.notes && /*#__PURE__*/React.createElement("div", {
+      className: "card",
+      style: {
+        padding: 12,
+        background: '#fafafa',
+        fontSize: 13,
+        color: '#6b7280'
+      }
+    }, /*#__PURE__*/React.createElement("strong", null, "Notes:"), " ", audit.notes), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: 18
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "card",
+      style: {
+        padding: 14
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        fontWeight: 600,
+        color: '#1e3a5f',
+        marginBottom: 10
+      }
+    }, "Material Composition"), mats.map((m, i) => /*#__PURE__*/React.createElement("div", {
+      key: m.name,
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 10,
+        height: 10,
+        borderRadius: 2,
+        background: MC[i % MC.length],
+        flexShrink: 0
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: 1,
+        fontSize: 12
+      }
+    }, m.name), audit.status !== 'Completed' ? /*#__PURE__*/React.createElement("input", {
+      type: "number",
+      min: "0",
+      step: "0.1",
+      value: m.weight,
+      onChange: e => {
+        const v = parseFloat(e.target.value) || 0;
+        setMats(ms => ms.map((x, j) => j === i ? {
+          ...x,
+          weight: v
+        } : x));
+      },
+      style: {
+        width: 72,
+        textAlign: 'right',
+        fontSize: 12,
+        padding: '3px 6px'
+      },
+      placeholder: "0.0"
+    }) : /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        fontWeight: 500,
+        width: 56,
+        textAlign: 'right'
+      }
+    }, m.weight, " lbs"), total > 0 && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        color: '#9ca3af',
+        width: 36,
+        textAlign: 'right'
+      }
+    }, ((parseFloat(m.weight) || 0) / total * 100).toFixed(0), "%"))), total > 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        borderTop: '1px solid #f0e8d5',
+        paddingTop: 8,
+        display: 'flex',
+        justifyContent: 'space-between',
+        fontSize: 13,
+        fontWeight: 600
+      }
+    }, /*#__PURE__*/React.createElement("span", null, "Total"), /*#__PURE__*/React.createElement("span", null, total.toFixed(1), " lbs"))), /*#__PURE__*/React.createElement("div", {
+      className: "card",
+      style: {
+        padding: 14
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        fontWeight: 600,
+        color: '#1e3a5f',
+        marginBottom: 10
+      }
+    }, "Composition Chart"), pie.length > 0 ? /*#__PURE__*/React.createElement(ResponsiveContainer, {
+      width: "100%",
+      height: 210
+    }, /*#__PURE__*/React.createElement(PieChart, null, /*#__PURE__*/React.createElement(Pie, {
+      data: pie,
+      cx: "50%",
+      cy: "45%",
+      innerRadius: 50,
+      outerRadius: 78,
+      dataKey: "value",
+      nameKey: "name"
+    }, pie.map((e, i) => /*#__PURE__*/React.createElement(Cell, {
+      key: i,
+      fill: MC[i % MC.length]
+    }))), /*#__PURE__*/React.createElement(Tooltip, {
+      formatter: v => `${v.toFixed(1)} lbs`
+    }), /*#__PURE__*/React.createElement(Legend, {
+      iconSize: 7,
+      iconType: "square",
+      wrapperStyle: {
+        fontSize: '10px'
+      }
+    }))) : /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: 170,
+        color: '#9ca3af',
+        fontSize: 13
+      }
+    }, "Enter weights to see chart"))));
+  }
+  if (sel) {
+    const a = audits.find(x => x.id === sel);
+    return /*#__PURE__*/React.createElement(AuditDetail, {
+      audit: a
+    });
+  }
+  function create() {
+    if (!nA.title || !nA.building_id || !nA.date) {
+      alert('Please provide title, building, and date.');
+      return;
+    }
+    const b = BUILDINGS.find(x => x.id === nA.building_id);
+    setAudits(p => [{
+      id: `AUD${String(p.length + 1).padStart(3, '0')}`,
+      title: nA.title,
+      building_id: nA.building_id,
+      building_name: b?.name || '',
+      date: nA.date,
+      auditors: nA.auditors.split(',').map(s => s.trim()).filter(Boolean),
+      status: 'Planned',
+      sample_weight_lbs: null,
+      stream: nA.stream,
+      location: nA.location,
+      notes: nA.notes,
+      materials: []
+    }, ...p]);
+    setModal(false);
+    setNA({
+      title: '',
+      building_id: '',
+      date: '',
+      stream: 'General Waste',
+      location: '',
+      auditors: '',
+      notes: ''
+    });
+  }
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 24
+    }
+  }, /*#__PURE__*/React.createElement(SH, {
+    title: "Waste Audit Manager",
+    sub: "Plan, conduct, and review physical waste composition audits",
+    action: /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-primary btn-sm",
+      onClick: () => setModal(true)
+    }, "+ New Audit")
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(4,1fr)',
+      gap: 12,
+      marginBottom: 18
+    }
+  }, ['Planned', 'In Progress', 'Under Review', 'Completed'].map(s => /*#__PURE__*/React.createElement(StatCard, {
+    key: s,
+    label: s,
+    value: audits.filter(a => a.status === s).length,
+    color: s === 'Completed' ? 'green' : 'navy'
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      overflow: 'hidden'
+    }
+  }, /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Audit"), /*#__PURE__*/React.createElement("th", null, "Building"), /*#__PURE__*/React.createElement("th", null, "Date"), /*#__PURE__*/React.createElement("th", null, "Stream"), /*#__PURE__*/React.createElement("th", null, "Sample Weight"), /*#__PURE__*/React.createElement("th", null, "Status"), /*#__PURE__*/React.createElement("th", null))), /*#__PURE__*/React.createElement("tbody", null, audits.map(a => /*#__PURE__*/React.createElement("tr", {
+    key: a.id
+  }, /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 500,
+      fontSize: 13,
+      color: '#1e3a5f'
+    }
+  }, a.title), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: '#9ca3af'
+    }
+  }, a.id)), /*#__PURE__*/React.createElement("td", {
+    style: {
+      fontSize: 12
+    }
+  }, a.building_name || '—'), /*#__PURE__*/React.createElement("td", null, a.date || '—'), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
+    className: "badge badge-navy"
+  }, a.stream)), /*#__PURE__*/React.createElement("td", null, a.sample_weight_lbs ? `${a.sample_weight_lbs} lbs` : /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: '#9ca3af',
+      fontStyle: 'italic'
+    }
+  }, "Not recorded")), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement(Badge, {
+    status: a.status
+  })), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-secondary btn-sm",
+    onClick: () => setSel(a.id)
+  }, "View"))))))), modal && /*#__PURE__*/React.createElement(Modal, {
+    title: "Create New Audit",
+    onClose: () => setModal(false)
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 4
+    }
+  }, "Title *"), /*#__PURE__*/React.createElement("input", {
+    placeholder: "e.g. Siebel Center Recycling Audit",
+    value: nA.title,
+    onChange: e => setNA({
+      ...nA,
+      title: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 4
+    }
+  }, "Building *"), /*#__PURE__*/React.createElement("select", {
+    value: nA.building_id,
+    onChange: e => setNA({
+      ...nA,
+      building_id: e.target.value
+    })
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Select..."), BUILDINGS.map(b => /*#__PURE__*/React.createElement("option", {
+    key: b.id,
+    value: b.id
+  }, b.name)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 4
+    }
+  }, "Date *"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: nA.date,
+    onChange: e => setNA({
+      ...nA,
+      date: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 4
+    }
+  }, "Stream"), /*#__PURE__*/React.createElement("select", {
+    value: nA.stream,
+    onChange: e => setNA({
+      ...nA,
+      stream: e.target.value
+    })
+  }, STREAMS.map(s => /*#__PURE__*/React.createElement("option", {
+    key: s
+  }, s))))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 4
+    }
+  }, "Location"), /*#__PURE__*/React.createElement("input", {
+    placeholder: "e.g. Loading dock, north side",
+    value: nA.location,
+    onChange: e => setNA({
+      ...nA,
+      location: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 4
+    }
+  }, "Researchers (comma-separated)"), /*#__PURE__*/React.createElement("input", {
+    placeholder: "e.g. Tajuan Williams, Sarah Chen",
+    value: nA.auditors,
+    onChange: e => setNA({
+      ...nA,
+      auditors: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 4
+    }
+  }, "Notes"), /*#__PURE__*/React.createElement("textarea", {
+    rows: 2,
+    value: nA.notes,
+    onChange: e => setNA({
+      ...nA,
+      notes: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      justifyContent: 'flex-end',
+      paddingTop: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-secondary",
+    onClick: () => setModal(false)
+  }, "Cancel"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-primary",
+    onClick: create
+  }, "Create Audit")))));
+}
+
+// REGO RESEARCH
+function RegoResearch() {
+  const [view, setView] = useState('table');
+  const compData = ['paper', 'plastics', 'food_waste', 'paper_towels', 'other'].map(k => ({
+    name: k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+    total: REGO_DATA.reduce((s, r) => s + (r.materials[k] || 0), 0)
+  }));
+  function exp() {
+    const blob = new Blob([['ID,Building,Bin,Date,Stream,Fill%,Est Weight,Contamination,Confidence', ...REGO_DATA.map(r => [r.id, r.building, r.bin, r.date, r.stream, r.fill_pct, r.est_weight_lbs, r.contamination, r.confidence].join(','))].join('\n')], {
+      type: 'text/csv'
+    });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'rego_data.csv';
+    a.click();
+  }
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 24
+    }
+  }, /*#__PURE__*/React.createElement(SH, {
+    title: "Rego Research Hub",
+    sub: "Waste characterization data from Rego platform (mock data — pending authorized integration)",
+    action: /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-secondary btn-sm",
+      onClick: exp
+    }, "Export"), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-primary btn-sm",
+      onClick: () => alert('Import: Upload a Rego-formatted CSV. Actual Rego API integration pending authorization.')
+    }, "Import Rego Export"))
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 12,
+      marginBottom: 18,
+      borderLeft: '4px solid #e9a825',
+      background: '#fef9ec'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: '#92400e'
+    }
+  }, /*#__PURE__*/React.createElement("strong", null, "Mock Data Notice:"), " Records below are simulated. No actual Rego API connection exists. This module uses an adapter architecture to support authorized imports when available.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      marginBottom: 16
+    }
+  }, ['table', 'charts', 'summary'].map(v => /*#__PURE__*/React.createElement("button", {
+    key: v,
+    className: `btn ${view === v ? 'btn-primary' : 'btn-secondary'} btn-sm`,
+    onClick: () => setView(v)
+  }, v.charAt(0).toUpperCase() + v.slice(1)))), view === 'table' && /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      overflow: 'hidden'
+    }
+  }, /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "ID"), /*#__PURE__*/React.createElement("th", null, "Building"), /*#__PURE__*/React.createElement("th", null, "Bin"), /*#__PURE__*/React.createElement("th", null, "Date"), /*#__PURE__*/React.createElement("th", null, "Stream"), /*#__PURE__*/React.createElement("th", null, "Fill %"), /*#__PURE__*/React.createElement("th", null, "Est. Weight"), /*#__PURE__*/React.createElement("th", null, "Contamination"), /*#__PURE__*/React.createElement("th", null, "Confidence"))), /*#__PURE__*/React.createElement("tbody", null, REGO_DATA.map(r => /*#__PURE__*/React.createElement("tr", {
+    key: r.id
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      fontFamily: 'monospace',
+      fontSize: 11
+    }
+  }, r.id), /*#__PURE__*/React.createElement("td", {
+    style: {
+      fontWeight: 500
+    }
+  }, r.building), /*#__PURE__*/React.createElement("td", {
+    style: {
+      fontFamily: 'monospace',
+      fontSize: 11
+    }
+  }, r.bin), /*#__PURE__*/React.createElement("td", null, r.date), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
+    className: "badge badge-navy"
+  }, r.stream)), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: '#e4d5b5',
+      borderRadius: 9999,
+      width: 40,
+      height: 5,
+      overflow: 'hidden'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: `${r.fill_pct}%`,
+      height: '100%',
+      background: '#1e3a5f',
+      borderRadius: 9999
+    }
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11
+    }
+  }, r.fill_pct, "%"))), /*#__PURE__*/React.createElement("td", {
+    style: {
+      fontWeight: 500
+    }
+  }, r.est_weight_lbs, " lbs"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      fontSize: 11,
+      color: '#6b7280'
+    }
+  }, r.contamination), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement(Badge, {
+    status: r.confidence
+  }))))))), view === 'charts' && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: '#1e3a5f',
+      marginBottom: 10
+    }
+  }, "Aggregate Material Composition"), /*#__PURE__*/React.createElement(ResponsiveContainer, {
+    width: "100%",
+    height: 210
+  }, /*#__PURE__*/React.createElement(BarChart, {
+    data: compData,
+    layout: "vertical",
+    margin: {
+      top: 5,
+      right: 20,
+      left: 70,
+      bottom: 5
+    }
+  }, /*#__PURE__*/React.createElement(CartesianGrid, {
+    strokeDasharray: "3 3",
+    stroke: "#e4d5b5"
+  }), /*#__PURE__*/React.createElement(XAxis, {
+    type: "number",
+    tick: {
+      fontSize: 10
+    },
+    tickFormatter: v => `${v}lbs`
+  }), /*#__PURE__*/React.createElement(YAxis, {
+    type: "category",
+    dataKey: "name",
+    tick: {
+      fontSize: 11
+    }
+  }), /*#__PURE__*/React.createElement(Tooltip, {
+    formatter: v => `${v} lbs`
+  }), /*#__PURE__*/React.createElement(Bar, {
+    dataKey: "total",
+    fill: "#2d6a4f",
+    radius: [0, 3, 3, 0]
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: '#1e3a5f',
+      marginBottom: 10
+    }
+  }, "Fill Level by Observation"), /*#__PURE__*/React.createElement(ResponsiveContainer, {
+    width: "100%",
+    height: 210
+  }, /*#__PURE__*/React.createElement(BarChart, {
+    data: REGO_DATA,
+    margin: {
+      top: 5,
+      right: 10,
+      left: 0,
+      bottom: 0
+    }
+  }, /*#__PURE__*/React.createElement(CartesianGrid, {
+    strokeDasharray: "3 3",
+    stroke: "#e4d5b5"
+  }), /*#__PURE__*/React.createElement(XAxis, {
+    dataKey: "bin",
+    tick: {
+      fontSize: 9
+    }
+  }), /*#__PURE__*/React.createElement(YAxis, {
+    tick: {
+      fontSize: 10
+    },
+    tickFormatter: v => `${v}%`
+  }), /*#__PURE__*/React.createElement(Tooltip, {
+    formatter: v => `${v}%`
+  }), /*#__PURE__*/React.createElement(Bar, {
+    dataKey: "fill_pct",
+    fill: "#3b6fae",
+    radius: [3, 3, 0, 0]
+  }))))), view === 'summary' && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(3,1fr)',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement(StatCard, {
+    label: "Observations",
+    value: REGO_DATA.length,
+    color: "navy"
+  }), /*#__PURE__*/React.createElement(StatCard, {
+    label: "Buildings Covered",
+    value: [...new Set(REGO_DATA.map(r => r.building))].length,
+    color: "green"
+  }), /*#__PURE__*/React.createElement(StatCard, {
+    label: "Avg Fill Level",
+    value: `${(REGO_DATA.reduce((s, r) => s + r.fill_pct, 0) / REGO_DATA.length).toFixed(0)}%`,
+    color: "amber"
+  })), REGO_DATA.map(r => /*#__PURE__*/React.createElement("div", {
+    key: r.id,
+    className: "card",
+    style: {
+      padding: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between'
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      color: '#1e3a5f'
+    }
+  }, r.building, " — ", r.bin), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: '#9ca3af'
+    }
+  }, r.date, " — ", r.stream)), /*#__PURE__*/React.createElement(Badge, {
+    status: r.confidence
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(5,1fr)',
+      gap: 4,
+      marginTop: 10
+    }
+  }, Object.entries(r.materials).map(([k, v]) => /*#__PURE__*/React.createElement("div", {
+    key: k,
+    style: {
+      textAlign: 'center'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      color: '#1e3a5f'
+    }
+  }, v), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: '#9ca3af'
+    }
+  }, k.replace(/_/g, ' ')))))))));
+}
+
+// INSIGHTS
+function InsightsEngine() {
+  const [ins, setIns] = useState(DEMO_INSIGHTS);
+  const [fs, setFs] = useState('All');
+  const [ex, setEx] = useState(null);
+  const STATS = ['All', 'Under Investigation', 'Validated', 'Recommended for Action', 'Rejected'];
+  const fi = fs === 'All' ? ins : ins.filter(i => i.status === fs);
+  function upd(id, s) {
+    setIns(p => p.map(i => i.id === id ? {
+      ...i,
+      status: s
+    } : i));
+  }
+  const bdrs = {
+    'Under Investigation': '#3b6fae',
+    'Validated': '#2d6a4f',
+    'Recommended for Action': '#e9a825',
+    'Rejected': '#dc2626'
+  };
+  const cats = {
+    'Contamination': 'badge-red',
+    'Data Quality': 'badge-amber',
+    'Composition': 'badge-navy'
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 24
+    }
+  }, /*#__PURE__*/React.createElement(SH, {
+    title: "Research Insights Engine",
+    sub: "Patterns, findings, and recommendations from EnviroTrap data analysis"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(4,1fr)',
+      gap: 12,
+      marginBottom: 18
+    }
+  }, ['Under Investigation', 'Validated', 'Recommended for Action', 'Rejected'].map(s => /*#__PURE__*/React.createElement(StatCard, {
+    key: s,
+    label: s,
+    value: ins.filter(i => i.status === s).length,
+    color: s === 'Validated' ? 'green' : s === 'Recommended for Action' ? 'amber' : s === 'Rejected' ? 'red' : 'navy'
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 10,
+      background: '#fef9ec',
+      border: '1px solid #fde68a',
+      marginBottom: 14,
+      fontSize: 12,
+      color: '#92400e'
+    }
+  }, /*#__PURE__*/React.createElement("strong", null, "Research integrity:"), " All insights are derived from available data with documented sources. Human review is required before any operational decisions are made."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      flexWrap: 'wrap',
+      marginBottom: 14
+    }
+  }, STATS.map(s => /*#__PURE__*/React.createElement("button", {
+    key: s,
+    className: `btn ${fs === s ? 'btn-primary' : 'btn-secondary'} btn-sm`,
+    onClick: () => setFs(s)
+  }, s))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 10
+    }
+  }, fi.map(i => /*#__PURE__*/React.createElement("div", {
+    key: i.id,
+    className: "card insight-card",
+    style: {
+      padding: 14,
+      borderLeftColor: bdrs[i.status] || '#9ca3af'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      flexWrap: 'wrap',
+      marginBottom: 4
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 600,
+      color: '#1e3a5f',
+      fontSize: 13
+    }
+  }, i.title), /*#__PURE__*/React.createElement("span", {
+    className: `badge ${cats[i.category] || 'badge-gray'}`
+  }, i.category), /*#__PURE__*/React.createElement(Badge, {
+    status: i.confidence
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: '#6b7280'
+    }
+  }, i.summary), ex === i.id && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10,
+      paddingTop: 10,
+      borderTop: '1px solid #f0e8d5',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 5
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 600,
+      color: '#1e3a5f'
+    }
+  }, "Evidence: "), i.evidence), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 600,
+      color: '#1e3a5f'
+    }
+  }, "Recommendation: "), i.recommendation), i.building_ids.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 600,
+      color: '#1e3a5f'
+    }
+  }, "Buildings: "), i.building_ids.map(id => BUILDINGS.find(b => b.id === id)?.name || id).join(', ')))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'flex-end',
+      gap: 4,
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(Badge, {
+    status: i.status
+  }), /*#__PURE__*/React.createElement("button", {
+    style: {
+      fontSize: 11,
+      color: '#3b6fae',
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer'
+    },
+    onClick: () => setEx(ex === i.id ? null : i.id)
+  }, ex === i.id ? 'Less' : 'Details'))), ex === i.id && i.status !== 'Rejected' && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      marginTop: 10,
+      paddingTop: 10,
+      borderTop: '1px solid #f0e8d5',
+      flexWrap: 'wrap'
+    }
+  }, i.status !== 'Validated' && /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-green btn-sm",
+    onClick: () => upd(i.id, 'Validated')
+  }, "Mark Validated"), i.status !== 'Recommended for Action' && /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-amber btn-sm",
+    onClick: () => upd(i.id, 'Recommended for Action')
+  }, "Recommend Action"), i.status !== 'Under Investigation' && /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-secondary btn-sm",
+    onClick: () => upd(i.id, 'Under Investigation')
+  }, "Return to Investigation"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-danger btn-sm",
+    onClick: () => upd(i.id, 'Rejected')
+  }, "Reject")))), fi.length === 0 && /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 32,
+      textAlign: 'center',
+      color: '#9ca3af'
+    }
+  }, "No insights match this filter.")));
+}
+
+// INTERVENTIONS
+function Interventions() {
+  const [items, setItems] = useState(DEMO_INTERVENTIONS);
+  const [sel, setSel] = useState(null);
+  const [modal, setModal] = useState(false);
+  const [nI, setNI] = useState({
+    title: '',
+    linked_insight: '',
+    building_id: '',
+    observation: '',
+    proposed_action: '',
+    responsible_party: '',
+    proposed_date: '',
+    baseline: '',
+    followup: ''
+  });
+  const FLOW = ['Proposed', 'Approved', 'In Progress', 'Completed', 'Evaluated'];
+  function advance(id) {
+    setItems(p => p.map(i => {
+      if (i.id !== id) return i;
+      const ix = FLOW.indexOf(i.status);
+      return ix < FLOW.length - 1 ? {
+        ...i,
+        status: FLOW[ix + 1]
+      } : i;
+    }));
+  }
+  function create() {
+    if (!nI.title || !nI.observation || !nI.proposed_action) {
+      alert('Please provide title, observation, and proposed action.');
+      return;
+    }
+    const b = BUILDINGS.find(x => x.id === nI.building_id);
+    setItems(p => [{
+      id: `INT${String(p.length + 1).padStart(3, '0')}`,
+      title: nI.title,
+      linked_insight: nI.linked_insight,
+      building_id: nI.building_id,
+      building_name: b?.name || null,
+      observation: nI.observation,
+      proposed_action: nI.proposed_action,
+      responsible_party: nI.responsible_party,
+      status: 'Proposed',
+      proposed_date: nI.proposed_date,
+      baseline: nI.baseline,
+      followup: nI.followup,
+      outcome: ''
+    }, ...p]);
+    setModal(false);
+    setNI({
+      title: '',
+      linked_insight: '',
+      building_id: '',
+      observation: '',
+      proposed_action: '',
+      responsible_party: '',
+      proposed_date: '',
+      baseline: '',
+      followup: ''
+    });
+  }
+  if (sel) {
+    const iv = items.find(x => x.id === sel);
+    const idx = FLOW.indexOf(iv.status);
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: 24,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 14
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-secondary btn-sm",
+      onClick: () => setSel(null)
+    }, "Back"), /*#__PURE__*/React.createElement("h3", {
+      style: {
+        flex: 1,
+        fontWeight: 700,
+        color: '#1e3a5f',
+        fontSize: 15,
+        margin: 0
+      }
+    }, iv.title), /*#__PURE__*/React.createElement(Badge, {
+      status: iv.status
+    })), /*#__PURE__*/React.createElement("div", {
+      className: "card",
+      style: {
+        padding: 14
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        fontWeight: 600,
+        color: '#1e3a5f',
+        marginBottom: 10
+      }
+    }, "Status Progression"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+        flexWrap: 'wrap'
+      }
+    }, FLOW.map((s, i) => /*#__PURE__*/React.createElement(React.Fragment, {
+      key: s
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: '4px 10px',
+        borderRadius: 6,
+        fontSize: 12,
+        fontWeight: 600,
+        background: i <= idx ? '#1e3a5f' : '#f3f4f6',
+        color: i <= idx ? 'white' : '#9ca3af'
+      }
+    }, s), i < FLOW.length - 1 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 16,
+        height: 2,
+        background: i < idx ? '#3b6fae' : '#e4d5b5'
+      }
+    })))), idx < FLOW.length - 1 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 10
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-primary btn-sm",
+      onClick: () => advance(iv.id)
+    }, "Advance to \"", FLOW[idx + 1], "\""))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: 14
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "card",
+      style: {
+        padding: 14,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        fontWeight: 600,
+        color: '#1e3a5f'
+      }
+    }, "Details"), [['Building', iv.building_name || 'Not building-specific'], ['Observation', iv.observation], ['Proposed Action', iv.proposed_action], ['Responsible Party', iv.responsible_party || '—'], ['Proposed Date', iv.proposed_date || '—']].map(([k, v]) => /*#__PURE__*/React.createElement("div", {
+      key: k
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        fontWeight: 600,
+        color: '#9ca3af',
+        marginBottom: 2
+      }
+    }, k), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12
+      }
+    }, v)))), /*#__PURE__*/React.createElement("div", {
+      className: "card",
+      style: {
+        padding: 14,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        fontWeight: 600,
+        color: '#1e3a5f'
+      }
+    }, "Evidence and Evaluation"), [['Baseline', iv.baseline], ['Follow-up Plan', iv.followup], ['Outcome', iv.outcome]].map(([k, v]) => /*#__PURE__*/React.createElement("div", {
+      key: k
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        fontWeight: 600,
+        color: '#9ca3af',
+        marginBottom: 2
+      }
+    }, k), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12
+      }
+    }, v || /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: '#9ca3af',
+        fontStyle: 'italic'
+      }
+    }, "Not yet recorded")))), iv.linked_insight && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        fontWeight: 600,
+        color: '#9ca3af',
+        marginBottom: 2
+      }
+    }, "Linked Insight"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12
+      }
+    }, DEMO_INSIGHTS.find(i => i.id === iv.linked_insight)?.title || iv.linked_insight)))), /*#__PURE__*/React.createElement("div", {
+      className: "card",
+      style: {
+        padding: 12,
+        background: '#fef9ec',
+        border: '1px solid #fde68a',
+        fontSize: 12,
+        color: '#92400e'
+      }
+    }, /*#__PURE__*/React.createElement("strong", null, "Evaluation note:"), " Do not claim an intervention caused improvements without sufficient before/after evidence. Baseline and follow-up audits are required."));
+  }
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 24
+    }
+  }, /*#__PURE__*/React.createElement(SH, {
+    title: "Sustainability Intervention Tracker",
+    sub: "Connect research findings to proposed campus sustainability actions",
+    action: /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-primary btn-sm",
+      onClick: () => setModal(true)
+    }, "+ New Intervention")
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(5,1fr)',
+      gap: 12,
+      marginBottom: 18
+    }
+  }, FLOW.map(s => /*#__PURE__*/React.createElement(StatCard, {
+    key: s,
+    label: s,
+    value: items.filter(i => i.status === s).length,
+    color: s === 'Completed' || s === 'Evaluated' ? 'green' : s === 'In Progress' || s === 'Approved' ? 'navy' : 'amber'
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 10
+    }
+  }, items.map(iv => /*#__PURE__*/React.createElement("div", {
+    key: iv.id,
+    className: "card",
+    style: {
+      padding: 14,
+      cursor: 'pointer'
+    },
+    onClick: () => setSel(iv.id)
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      color: '#1e3a5f',
+      fontSize: 13
+    }
+  }, iv.title), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: '#9ca3af',
+      marginTop: 2
+    }
+  }, iv.building_name || 'Campus-wide', " — ", iv.proposed_date || 'Date TBD'), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: '#6b7280',
+      marginTop: 4
+    }
+  }, iv.observation)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'flex-end',
+      gap: 4,
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(Badge, {
+    status: iv.status
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: '#3b6fae'
+    }
+  }, "View")))))), modal && /*#__PURE__*/React.createElement(Modal, {
+    title: "New Intervention Proposal",
+    onClose: () => setModal(false)
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 4
+    }
+  }, "Title *"), /*#__PURE__*/React.createElement("input", {
+    placeholder: "Brief intervention title",
+    value: nI.title,
+    onChange: e => setNI({
+      ...nI,
+      title: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 4
+    }
+  }, "Linked Insight"), /*#__PURE__*/React.createElement("select", {
+    value: nI.linked_insight,
+    onChange: e => setNI({
+      ...nI,
+      linked_insight: e.target.value
+    })
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Select (optional)"), DEMO_INSIGHTS.map(i => /*#__PURE__*/React.createElement("option", {
+    key: i.id,
+    value: i.id
+  }, i.title)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 4
+    }
+  }, "Building"), /*#__PURE__*/React.createElement("select", {
+    value: nI.building_id,
+    onChange: e => setNI({
+      ...nI,
+      building_id: e.target.value
+    })
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Campus-wide"), BUILDINGS.map(b => /*#__PURE__*/React.createElement("option", {
+    key: b.id,
+    value: b.id
+  }, b.name)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 4
+    }
+  }, "Observation *"), /*#__PURE__*/React.createElement("textarea", {
+    rows: 2,
+    placeholder: "What did the research find?",
+    value: nI.observation,
+    onChange: e => setNI({
+      ...nI,
+      observation: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 4
+    }
+  }, "Proposed Action *"), /*#__PURE__*/React.createElement("textarea", {
+    rows: 2,
+    placeholder: "What is the proposed change?",
+    value: nI.proposed_action,
+    onChange: e => setNI({
+      ...nI,
+      proposed_action: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 4
+    }
+  }, "Responsible Party"), /*#__PURE__*/React.createElement("input", {
+    value: nI.responsible_party,
+    onChange: e => setNI({
+      ...nI,
+      responsible_party: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 4
+    }
+  }, "Proposed Date"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: nI.proposed_date,
+    onChange: e => setNI({
+      ...nI,
+      proposed_date: e.target.value
+    })
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 4
+    }
+  }, "Baseline"), /*#__PURE__*/React.createElement("input", {
+    placeholder: "Reference audit or data point",
+    value: nI.baseline,
+    onChange: e => setNI({
+      ...nI,
+      baseline: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      justifyContent: 'flex-end',
+      paddingTop: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-secondary",
+    onClick: () => setModal(false)
+  }, "Cancel"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-primary",
+    onClick: create
+  }, "Submit")))));
+}
+
+// REPORTS
+function Reports() {
+  const [cfg, setCfg] = useState({
+    from: '2024-01-01',
+    to: '2024-06-30',
+    modules: ['records', 'audits', 'insights', 'interventions']
+  });
+  const [prev, setPrev] = useState(false);
+  const MODS = ['records', 'audits', 'insights', 'interventions', 'rego'];
+  function tm(m) {
+    setCfg(c => ({
+      ...c,
+      modules: c.modules.includes(m) ? c.modules.filter(x => x !== m) : [...c.modules, m]
+    }));
+  }
+  const tot = DEMO_RECORDS.length,
+    attr = DEMO_RECORDS.filter(r => r.building_id).length,
+    wt = DEMO_RECORDS.reduce((s, r) => s + r.net_lbs, 0);
+  function expCSV() {
+    const rows = [['ENVIROTRAP NEXUS RESEARCH SUMMARY'], ['Generated:', new Date().toISOString()], ['Range:', `${cfg.from} to ${cfg.to}`], ['NOTE: DEMO DATA — NOT ACTUAL UIUC OPERATIONAL RECORDS'], [], ['METRIC', 'VALUE', 'NOTE'], ['Total Records', tot, 'Simulated LoadMan'], ['Attributed', attr, 'With building ID'], ['Attribution Rate', (attr / tot * 100).toFixed(1) + '%', 'Matches historical 12.6%'], ['Total Net Weight (lbs)', wt, 'Estimated'], [], ['INSIGHT', 'STATUS', 'CATEGORY'], ...DEMO_INSIGHTS.map(i => [`"${i.title}"`, i.status, i.category])];
+    const blob = new Blob([rows.map(r => r.join(',')).join('\n')], {
+      type: 'text/csv'
+    });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'envirotrap_summary.csv';
+    a.click();
+  }
+  function expJSON() {
+    const report = {
+      generated: new Date().toISOString(),
+      note: 'DEMO DATA — NOT ACTUAL UIUC OPERATIONAL RECORDS',
+      summary: {
+        total_records: tot,
+        attributed: attr,
+        attribution_pct: (attr / tot * 100).toFixed(2) + '%',
+        total_weight_lbs: wt,
+        audits: DEMO_AUDITS.length,
+        insights: DEMO_INSIGHTS.length,
+        interventions: DEMO_INTERVENTIONS.length
+      }
+    };
+    const blob = new Blob([JSON.stringify(report, null, 2)], {
+      type: 'application/json'
+    });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'envirotrap_report.json';
+    a.click();
+  }
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 24
+    }
+  }, /*#__PURE__*/React.createElement(SH, {
+    title: "Reports",
+    sub: "Generate and export research summaries and data exports"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '240px 1fr',
+      gap: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 14,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 12,
+      alignSelf: 'start'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: '#1e3a5f'
+    }
+  }, "Configuration"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 4
+    }
+  }, "Date From"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: cfg.from,
+    onChange: e => setCfg({
+      ...cfg,
+      from: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 4
+    }
+  }, "Date To"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: cfg.to,
+    onChange: e => setCfg({
+      ...cfg,
+      to: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 8
+    }
+  }, "Modules"), MODS.map(m => /*#__PURE__*/React.createElement("label", {
+    key: m,
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      fontSize: 13,
+      marginBottom: 6,
+      cursor: 'pointer'
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: cfg.modules.includes(m),
+    onChange: () => tm(m),
+    style: {
+      width: 'auto'
+    }
+  }), m.charAt(0).toUpperCase() + m.slice(1)))), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-primary",
+    style: {
+      justifyContent: 'center'
+    },
+    onClick: () => setPrev(true)
+  }, "Generate Preview")), /*#__PURE__*/React.createElement("div", null, !prev ? /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 40,
+      textAlign: 'center',
+      color: '#9ca3af'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 36,
+      marginBottom: 12
+    }
+  }, "📄"), /*#__PURE__*/React.createElement("div", null, "Configure and click Generate Preview")) : /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 18,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 700,
+      color: '#1e3a5f'
+    }
+  }, "EnviroTrap Nexus Research Summary"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-secondary btn-sm",
+    onClick: expCSV
+  }, "Export CSV"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-secondary btn-sm",
+    onClick: expJSON
+  }, "Export JSON"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '6px 10px',
+      background: '#fdf0c4',
+      border: '1px solid #f5b820',
+      borderRadius: 6,
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#a87214',
+      textAlign: 'center'
+    }
+  }, "DEMO DATA — NOT ACTUAL UIUC OPERATIONAL RECORDS"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(2,1fr)',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement(StatCard, {
+    label: "Total Records",
+    value: tot.toLocaleString(),
+    color: "navy"
+  }), /*#__PURE__*/React.createElement(StatCard, {
+    label: "Attribution Rate",
+    value: `${(attr / tot * 100).toFixed(1)}%`,
+    sub: "Mirrors historical 12.6%",
+    color: "amber"
+  }), /*#__PURE__*/React.createElement(StatCard, {
+    label: "Total Net Weight",
+    value: `${(wt / 2000).toFixed(1)} tons`,
+    color: "green"
+  }), /*#__PURE__*/React.createElement(StatCard, {
+    label: "Coverage Gap",
+    value: `${((1 - attr / tot) * 100).toFixed(1)}%`,
+    sub: "Records without building",
+    color: "red"
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: '#1e3a5f',
+      marginBottom: 8
+    }
+  }, "Research Insights"), DEMO_INSIGHTS.map(i => /*#__PURE__*/React.createElement("div", {
+    key: i.id,
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '5px 0',
+      borderBottom: '1px solid #f8f5ee',
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      color: '#374151'
+    }
+  }, i.title), /*#__PURE__*/React.createElement(Badge, {
+    status: i.status
+  })))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: '#1e3a5f',
+      marginBottom: 8
+    }
+  }, "Interventions"), DEMO_INTERVENTIONS.map(i => /*#__PURE__*/React.createElement("div", {
+    key: i.id,
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '5px 0',
+      borderBottom: '1px solid #f8f5ee',
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      color: '#374151'
+    }
+  }, i.title), /*#__PURE__*/React.createElement(Badge, {
+    status: i.status
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: '#9ca3af',
+      borderTop: '1px solid #f0e8d5',
+      paddingTop: 8
+    }
+  }, "EnviroTrap Nexus — University of Illinois Urbana-Champaign — Student Sustainability Research Initiative")))));
+}
+
+// SETTINGS
+function Settings() {
+  const [profile, setProfile] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('et_profile') || 'null') || {
+        name: 'Researcher',
+        role: 'Researcher',
+        org: 'EnviroTrap / UIUC',
+        email: ''
+      };
+    } catch {
+      return {
+        name: 'Researcher',
+        role: 'Researcher',
+        org: 'EnviroTrap / UIUC',
+        email: ''
+      };
+    }
+  });
+  function save() {
+    localStorage.setItem('et_profile', JSON.stringify(profile));
+    alert('Profile saved.');
+  }
+  const QS = ['What is the current operational status of RFID systems on LoadMan trucks?', 'Can building-level pickup data be recovered from route manifests or driver logs?', 'Is there a data export API or scheduled export from LoadMan available to researchers?', 'Which buildings have permanent container assignments vs. shared containers?', 'What is the downstream disposal destination for each waste stream leaving WTS?', 'Is F&S open to a pilot driver logging supplement using this interface?', 'Are there existing waste composition studies we should integrate findings from?', 'What approval process exists for implementing bin-labeling interventions?'];
+  const PHASES = [{
+    label: 'Phase 1 — MVP',
+    bg: '#cce5d8',
+    bdr: '#66b089',
+    status: 'Current',
+    check: 'done',
+    items: ['Dashboard', 'CSV Importer', 'Source Mapper', 'Waste Audits', 'Insights Engine', 'Demo Mode']
+  }, {
+    label: 'Phase 2 — Operations',
+    bg: '#d5e0ef',
+    bdr: '#80a2ce',
+    status: 'Planned',
+    check: 'plan',
+    items: ['Driver Collection Logging (full)', 'Route Management', 'Intervention Tracking', 'Advanced Reporting']
+  }, {
+    label: 'Phase 3 — Integrations',
+    bg: '#f3f4f6',
+    bdr: '#d1d5db',
+    status: 'Future',
+    check: 'future',
+    items: ['Authorized Rego Import', 'F&S Data Exports', 'QR Container Scanning', 'Additional Research Datasets']
+  }];
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 24
+    }
+  }, /*#__PURE__*/React.createElement(SH, {
+    title: "Settings",
+    sub: "User profile, application configuration, and research notes"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 14,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: '#1e3a5f'
+    }
+  }, "User Profile"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 4
+    }
+  }, "Name"), /*#__PURE__*/React.createElement("input", {
+    value: profile.name,
+    onChange: e => setProfile({
+      ...profile,
+      name: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 4
+    }
+  }, "Role"), /*#__PURE__*/React.createElement("select", {
+    value: profile.role,
+    onChange: e => setProfile({
+      ...profile,
+      role: e.target.value
+    })
+  }, /*#__PURE__*/React.createElement("option", null, "Researcher"), /*#__PURE__*/React.createElement("option", null, "Administrator"), /*#__PURE__*/React.createElement("option", null, "F&S Staff"), /*#__PURE__*/React.createElement("option", null, "Driver"), /*#__PURE__*/React.createElement("option", null, "Viewer"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 4
+    }
+  }, "Organization"), /*#__PURE__*/React.createElement("input", {
+    value: profile.org,
+    onChange: e => setProfile({
+      ...profile,
+      org: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#6b7280',
+      display: 'block',
+      marginBottom: 4
+    }
+  }, "Email"), /*#__PURE__*/React.createElement("input", {
+    type: "email",
+    placeholder: "your@illinois.edu",
+    value: profile.email,
+    onChange: e => setProfile({
+      ...profile,
+      email: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-primary",
+    onClick: save
+  }, "Save Profile")), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: '#1e3a5f',
+      marginBottom: 10
+    }
+  }, "Application Info"), [['Version', '0.1.0 — MVP'], ['Mode', 'Demo (No Backend Required)'], ['Records Loaded', DEMO_RECORDS.length], ['Audits', DEMO_AUDITS.length], ['Insights', DEMO_INSIGHTS.length], ['Interventions', DEMO_INTERVENTIONS.length]].map(([k, v]) => /*#__PURE__*/React.createElement("div", {
+    key: k,
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      padding: '6px 0',
+      borderBottom: '1px solid #f8f5ee',
+      fontSize: 13
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: '#9ca3af'
+    }
+  }, k), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 500
+    }
+  }, v))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#6b7280',
+      marginBottom: 6
+    }
+  }, "User Roles"), ['Administrator', 'Researcher', 'F&S Staff', 'Driver', 'Viewer'].map(r => /*#__PURE__*/React.createElement("div", {
+    key: r,
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      fontSize: 12,
+      padding: '3px 0'
+    }
+  }, /*#__PURE__*/React.createElement("span", null, r), /*#__PURE__*/React.createElement("span", {
+    className: `badge ${r === profile.role ? 'badge-navy' : 'badge-gray'}`
+  }, r === profile.role ? 'Active' : 'Available'))))), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 14,
+      gridColumn: '1/-1'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: '#1e3a5f',
+      marginBottom: 4
+    }
+  }, "Open Questions for F&S"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: '#9ca3af',
+      marginBottom: 10
+    }
+  }, "These questions require answers from UIUC Facilities and Services before EnviroTrap Nexus can move from prototype to operational system."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 6
+    }
+  }, QS.map((q, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      display: 'flex',
+      gap: 10,
+      padding: '8px 10px',
+      background: '#fef9ec',
+      borderRadius: 6,
+      border: '1px solid #fde68a'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: '#e9a825',
+      fontWeight: 700,
+      fontSize: 11,
+      flexShrink: 0
+    }
+  }, String(i + 1).padStart(2, '0')), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: '#92400e'
+    }
+  }, q))))), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 14,
+      gridColumn: '1/-1'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: '#1e3a5f',
+      marginBottom: 10
+    }
+  }, "Phase Roadmap"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(3,1fr)',
+      gap: 14
+    }
+  }, PHASES.map(p => /*#__PURE__*/React.createElement("div", {
+    key: p.label,
+    style: {
+      border: `1px solid ${p.bdr}`,
+      borderRadius: 8,
+      padding: 12,
+      background: p.bg + '40'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 13,
+      marginBottom: 4
+    }
+  }, p.label), /*#__PURE__*/React.createElement("span", {
+    className: `badge ${p.status === 'Current' ? 'badge-green' : p.status === 'Planned' ? 'badge-navy' : 'badge-gray'}`,
+    style: {
+      marginBottom: 8,
+      display: 'inline-block'
+    }
+  }, p.status), /*#__PURE__*/React.createElement("ul", {
+    style: {
+      listStyle: 'none',
+      padding: 0,
+      margin: 0
+    }
+  }, p.items.map(item => /*#__PURE__*/React.createElement("li", {
+    key: item,
+    style: {
+      fontSize: 12,
+      color: '#4b5563',
+      padding: '2px 0',
+      display: 'flex',
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", null, p.status === 'Current' ? '✓' : p.status === 'Planned' ? '○' : '◌'), item)))))))));
+}
+
+// APP ROOT
+const PAGES = {
+  overview: /*#__PURE__*/React.createElement(Overview, null),
+  explorer: /*#__PURE__*/React.createElement(WasteExplorer, null),
+  mapper: /*#__PURE__*/React.createElement(SourceMapper, null),
+  collection: /*#__PURE__*/React.createElement(CollectionLog, null),
+  audits: /*#__PURE__*/React.createElement(WasteAudits, null),
+  rego: /*#__PURE__*/React.createElement(RegoResearch, null),
+  insights: /*#__PURE__*/React.createElement(InsightsEngine, null),
+  interventions: /*#__PURE__*/React.createElement(Interventions, null),
+  reports: /*#__PURE__*/React.createElement(Reports, null),
+  settings: /*#__PURE__*/React.createElement(Settings, null)
+};
+function App() {
+  const [active, setActive] = useState('overview');
+  const [collapsed, setCollapsed] = useState(false);
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: '100vh'
+    }
+  }, /*#__PURE__*/React.createElement(DemoBanner, null), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement(Sidebar, {
+    active: active,
+    setActive: setActive,
+    collapsed: collapsed,
+    setCollapsed: setCollapsed
+  }), /*#__PURE__*/React.createElement("main", {
+    style: {
+      flex: 1,
+      overflowY: 'auto',
+      background: '#f8f5ee'
+    }
+  }, PAGES[active] || null)));
+}
+ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.createElement(App, null));</script>
+</body>
+</html>
